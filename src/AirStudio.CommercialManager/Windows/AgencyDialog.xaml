@@ -1,0 +1,70 @@
+<Window x:Class="AirStudio.CommercialManager.Windows.AgencyDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Agency Details"
+        Height="400" Width="500"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource WindowBackgroundBrush}">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" x:Name="HeaderText" Text="ADD AGENCY" FontWeight="Bold" FontSize="16"
+                   Foreground="#B0C4DE" Margin="0,0,0,16"/>
+
+        <!-- Form Fields -->
+        <StackPanel Grid.Row="1">
+            <!-- Agency Name (Required) -->
+            <StackPanel Margin="0,0,0,12">
+                <Label Content="Agency Name *"/>
+                <TextBox x:Name="AgencyNameTextBox" Height="32" MaxLength="200"/>
+            </StackPanel>
+
+            <!-- Address -->
+            <StackPanel Margin="0,0,0,12">
+                <Label Content="Address"/>
+                <TextBox x:Name="AddressTextBox" Height="60" TextWrapping="Wrap" AcceptsReturn="True" MaxLength="500"/>
+            </StackPanel>
+
+            <!-- PIN and Phone in a row -->
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <Label Content="PIN"/>
+                    <TextBox x:Name="PINTextBox" Height="32" MaxLength="10"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <Label Content="Phone"/>
+                    <TextBox x:Name="PhoneTextBox" Height="32" MaxLength="20"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Email -->
+            <StackPanel Margin="0,0,0,12">
+                <Label Content="Email"/>
+                <TextBox x:Name="EmailTextBox" Height="32" MaxLength="100"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="Save" Click="SaveButton_Click" Width="100" Style="{StaticResource PrimaryButtonStyle}"/>
+            <Button Content="Cancel" Click="CancelButton_Click" Width="100"/>
+        </StackPanel>
+    </Grid>
+</Window>

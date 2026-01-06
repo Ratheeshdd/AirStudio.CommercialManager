@@ -117,16 +117,16 @@
                     <TextBlock Grid.Row="0" Text="ACTIONS" FontWeight="Bold" Foreground="#B0C4DE" Margin="0,0,0,12"/>
 
                     <StackPanel Grid.Row="1">
-                        <Button x:Name="LibraryButton" Content="Commercial Library" Height="40" Margin="0,4" Style="{StaticResource PrimaryButtonStyle}"/>
-                        <Button x:Name="AgencyButton" Content="Manage Agencies" Height="40" Margin="0,4"/>
-                        <Button x:Name="CapsuleButton" Content="Build Capsule" Height="40" Margin="0,4"/>
-                        <Button x:Name="ScheduleButton" Content="Schedule Commercial" Height="40" Margin="0,4"/>
-                        <Button x:Name="ImportTagButton" Content="Import/Edit TAG" Height="40" Margin="0,4"/>
+                        <Button x:Name="LibraryButton" Content="Commercial Library" Height="40" Margin="0,4" Style="{StaticResource PrimaryButtonStyle}" Click="LibraryButton_Click" IsEnabled="False"/>
+                        <Button x:Name="AgencyButton" Content="Manage Agencies" Height="40" Margin="0,4" Click="AgencyButton_Click" IsEnabled="False"/>
+                        <Button x:Name="CapsuleButton" Content="Build Capsule" Height="40" Margin="0,4" Click="CapsuleButton_Click" IsEnabled="False"/>
+                        <Button x:Name="ScheduleButton" Content="Schedule Commercial" Height="40" Margin="0,4" Click="ScheduleButton_Click" IsEnabled="False"/>
+                        <Button x:Name="ImportTagButton" Content="Import/Edit TAG" Height="40" Margin="0,4" Click="ImportTagButton_Click" IsEnabled="False"/>
 
                         <Separator Margin="0,16" Background="#3D5A80"/>
 
-                        <Button x:Name="ViewScheduleButton" Content="View Schedule" Height="40" Margin="0,4"/>
-                        <Button x:Name="ActivityLogButton" Content="Activity Log" Height="40" Margin="0,4"/>
+                        <Button x:Name="ViewScheduleButton" Content="View Schedule" Height="40" Margin="0,4" Click="ViewScheduleButton_Click" IsEnabled="False"/>
+                        <Button x:Name="ActivityLogButton" Content="Activity Log" Height="40" Margin="0,4" Click="ActivityLogButton_Click"/>
                     </StackPanel>
                 </Grid>
             </Border>

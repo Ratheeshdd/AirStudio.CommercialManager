@@ -215,5 +215,79 @@ namespace AirStudio.CommercialManager.Windows
         }
 
         #endregion
+
+        #region Action Button Handlers
+
+        private void AgencyButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedChannel == null)
+            {
+                MessageBox.Show("Please select a channel first.", "No Channel Selected",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            ShowAgencyManagement();
+        }
+
+        private void ShowAgencyManagement()
+        {
+            WorkAreaTitle.Text = $"AGENCY MANAGEMENT - {_selectedChannel.Name.ToUpperInvariant()}";
+
+            var agencyControl = new Controls.AgencyManagementControl();
+            agencyControl.Initialize(_selectedChannel);
+
+            WorkAreaContent.Child = agencyControl;
+            StatusLabel.Text = $"Managing agencies for {_selectedChannel.Name}";
+        }
+
+        private void LibraryButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedChannel == null) return;
+            // TODO: Implement library view
+            WorkAreaTitle.Text = $"COMMERCIAL LIBRARY - {_selectedChannel.Name.ToUpperInvariant()}";
+            StatusLabel.Text = $"Library view for {_selectedChannel.Name} (coming soon)";
+        }
+
+        private void CapsuleButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedChannel == null) return;
+            // TODO: Implement capsule builder
+            WorkAreaTitle.Text = $"BUILD CAPSULE - {_selectedChannel.Name.ToUpperInvariant()}";
+            StatusLabel.Text = $"Capsule builder for {_selectedChannel.Name} (coming soon)";
+        }
+
+        private void ScheduleButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedChannel == null) return;
+            // TODO: Implement scheduling
+            WorkAreaTitle.Text = $"SCHEDULE COMMERCIAL - {_selectedChannel.Name.ToUpperInvariant()}";
+            StatusLabel.Text = $"Scheduling for {_selectedChannel.Name} (coming soon)";
+        }
+
+        private void ImportTagButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedChannel == null) return;
+            // TODO: Implement TAG import/edit
+            WorkAreaTitle.Text = $"IMPORT/EDIT TAG - {_selectedChannel.Name.ToUpperInvariant()}";
+            StatusLabel.Text = $"TAG editor for {_selectedChannel.Name} (coming soon)";
+        }
+
+        private void ViewScheduleButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedChannel == null) return;
+            // TODO: Implement schedule view
+            WorkAreaTitle.Text = $"VIEW SCHEDULE - {_selectedChannel.Name.ToUpperInvariant()}";
+            StatusLabel.Text = $"Schedule view for {_selectedChannel.Name} (coming soon)";
+        }
+
+        private void ActivityLogButton_Click(object sender, RoutedEventArgs e)
+        {
+            // TODO: Implement activity log
+            WorkAreaTitle.Text = "ACTIVITY LOG";
+            StatusLabel.Text = "Activity log (coming soon)";
+        }
+
+        #endregion
     }
 }
