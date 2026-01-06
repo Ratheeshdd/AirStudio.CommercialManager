@@ -22,7 +22,6 @@ namespace AirStudio.CommercialManager.Controls
 
         private WaveformData _waveformData;
         private CapsuleWaveformData _capsuleData;
-        private bool _isSliderDragging;
         private bool _disposed;
 
         // Theme colors for waveform
@@ -106,6 +105,64 @@ namespace AirStudio.CommercialManager.Controls
         }
 
         /// <summary>
+        /// Load and display waveform for multiple audio files (creates capsule-like display)
+        /// </summary>
+        public async void LoadMultipleAudio(List<string> audioPaths)
+        {
+            if (audioPaths == null || audioPaths.Count == 0)
+            {
+                Clear();
+                return;
+            }
+
+            // Convert to segment format and use LoadCapsule
+            var segments = new List<(string name, string filePath)>();
+            for (int i = 0; i < audioPaths.Count; i++)
+            {
+                var fileName = System.IO.Path.GetFileNameWithoutExtension(audioPaths[i]);
+                segments.Add((fileName, audioPaths[i]));
+            }
+
+            LoadCapsule("Playlist", segments);
+        }
+
+        /// <summary>
+        /// Start playback
+        /// </summary>
+        public void Play()
+        {
+            if (_audioPlayer != null && (_waveformData != null || _capsuleData != null))
+            {
+                _audioPlayer.Play();
+            }
+        }
+
+        /// <summary>
+        /// Stop playback
+        /// </summary>
+        public void Stop()
+        {
+            _audioPlayer?.Stop();
+            CurrentTimeLabel.Text = "00:00:00";
+            UpdatePlayheadPosition();
+        }
+
+        /// <summary>
+        /// Gets the current playback position
+        /// </summary>
+        public TimeSpan Position => _audioPlayer?.Position ?? TimeSpan.Zero;
+
+        /// <summary>
+        /// Gets the total duration
+        /// </summary>
+        public TimeSpan Duration => _waveformData?.Duration ?? _capsuleData?.TotalDuration ?? TimeSpan.Zero;
+
+        /// <summary>
+        /// Gets whether audio is loaded
+        /// </summary>
+        public bool HasAudio => _waveformData != null || _capsuleData != null;
+
+        /// <summary>
         /// Load and display waveform for multiple segments (capsule)
         /// </summary>
         public async void LoadCapsule(string capsuleName, List<(string name, string filePath)> segments)
@@ -143,8 +200,6 @@ namespace AirStudio.CommercialManager.Controls
 
                 TotalTimeLabel.Text = FormatTime(_capsuleData.TotalDuration);
                 CurrentTimeLabel.Text = "00:00:00";
-                PositionSlider.Maximum = _capsuleData.TotalDuration.TotalSeconds;
-                PositionSlider.Value = 0;
 
                 RenderCapsuleWaveform();
             }
@@ -172,7 +227,6 @@ namespace AirStudio.CommercialManager.Controls
 
             CurrentTimeLabel.Text = "00:00:00";
             TotalTimeLabel.Text = "00:00:00";
-            PositionSlider.Value = 0;
 
             EnableControls(false);
         }
@@ -186,9 +240,8 @@ namespace AirStudio.CommercialManager.Controls
 
         private void EnableControls(bool enabled)
         {
-            PlayPauseButton.IsEnabled = enabled;
-            StopButton.IsEnabled = enabled;
-            PositionSlider.IsEnabled = enabled;
+            // Controls have been moved to MainWindow - just show/hide time overlay
+            TimeOverlayBorder.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void UpdateTimeDisplay()
@@ -197,7 +250,6 @@ namespace AirStudio.CommercialManager.Controls
             {
                 TotalTimeLabel.Text = FormatTime(_waveformData.Duration);
                 CurrentTimeLabel.Text = FormatTime(_audioPlayer.Position);
-                PositionSlider.Maximum = _waveformData.Duration.TotalSeconds;
             }
         }
 
@@ -430,41 +482,8 @@ namespace AirStudio.CommercialManager.Controls
             var percent = position.X / width;
             _audioPlayer.SeekPercent(percent);
 
-            if (!_isSliderDragging)
-            {
-                PositionSlider.Value = _audioPlayer.Position.TotalSeconds;
-            }
-        }
-
-        private void PositionSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (_isSliderDragging)
-            {
-                CurrentTimeLabel.Text = FormatTime(TimeSpan.FromSeconds(e.NewValue));
-            }
-        }
-
-        private void PositionSlider_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            _isSliderDragging = true;
-        }
-
-        private void PositionSlider_PreviewMouseUp(object sender, MouseButtonEventArgs e)
-        {
-            _isSliderDragging = false;
-            _audioPlayer.Seek(TimeSpan.FromSeconds(PositionSlider.Value));
-        }
-
-        private void PlayPauseButton_Click(object sender, RoutedEventArgs e)
-        {
-            _audioPlayer.TogglePlayPause();
-        }
-
-        private void StopButton_Click(object sender, RoutedEventArgs e)
-        {
-            _audioPlayer.Stop();
-            PositionSlider.Value = 0;
-            CurrentTimeLabel.Text = "00:00:00";
+            // Update current time display
+            CurrentTimeLabel.Text = FormatTime(_audioPlayer.Position);
             UpdatePlayheadPosition();
         }
 
@@ -475,50 +494,64 @@ namespace AirStudio.CommercialManager.Controls
                 switch (state)
                 {
                     case PlaybackState.Playing:
-                        PlayPauseButton.Content = "⏸";
                         _positionTimer.Start();
                         break;
                     case PlaybackState.Paused:
-                        PlayPauseButton.Content = "▶";
-                        _positionTimer.Stop();
-                        break;
                     case PlaybackState.Stopped:
-                        PlayPauseButton.Content = "▶";
                         _positionTimer.Stop();
                         break;
                 }
+
+                // Notify MainWindow about state change via event
+                StateChanged?.Invoke(this, state);
             });
         }
+
+        /// <summary>
+        /// Event fired when playback state changes
+        /// </summary>
+        public event EventHandler<PlaybackState> StateChanged;
 
         private void AudioPlayer_PlaybackCompleted(object sender, EventArgs e)
         {
             Dispatcher.Invoke(() =>
             {
-                PositionSlider.Value = 0;
                 CurrentTimeLabel.Text = "00:00:00";
                 UpdatePlayheadPosition();
+
+                // Notify MainWindow
+                PlaybackCompleted?.Invoke(this, EventArgs.Empty);
             });
         }
 
+        /// <summary>
+        /// Event fired when playback completes
+        /// </summary>
+        public event EventHandler PlaybackCompleted;
+
         private void PositionTimer_Tick(object sender, EventArgs e)
         {
-            if (!_isSliderDragging)
-            {
-                PositionSlider.Value = _audioPlayer.Position.TotalSeconds;
-                CurrentTimeLabel.Text = FormatTime(_audioPlayer.Position);
-                UpdatePlayheadPosition();
+            CurrentTimeLabel.Text = FormatTime(_audioPlayer.Position);
+            UpdatePlayheadPosition();
 
-                // Update segment info for capsule
-                if (_capsuleData != null)
+            // Update segment info for capsule
+            if (_capsuleData != null)
+            {
+                var segment = _capsuleData.GetSegmentAtTime(_audioPlayer.Position);
+                if (segment != null)
                 {
-                    var segment = _capsuleData.GetSegmentAtTime(_audioPlayer.Position);
-                    if (segment != null)
-                    {
-                        SegmentLabel.Text = $"Segment: {segment.Name}";
-                    }
+                    SegmentLabel.Text = $"Segment: {segment.Name}";
                 }
             }
+
+            // Notify MainWindow about position change
+            PositionChanged?.Invoke(this, _audioPlayer.Position);
         }
+
+        /// <summary>
+        /// Event fired when playback position changes
+        /// </summary>
+        public event EventHandler<TimeSpan> PositionChanged;
 
         #endregion
 

@@ -10,7 +10,24 @@
       "Bash(cat:*)",
       "Bash(dotnet build:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(dir /s /b:*)",
+      "Bash(dotnet run)",
+      "Bash(taskkill:*)",
+      "Bash(dotnet run:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(start AirStudio.CommercialManager.exe)",
+      "Bash(cmd /c \"ping -n 5 127.0.0.1 > nul && type %LOCALAPPDATA%\\\\AirStudio\\\\CommercialManager\\\\logs\\\\*.log\")",
+      "Bash(tasklist:*)",
+      "Bash(cmd /c \"dir /s /b C:\\\\Users\\\\administrator\\\\AppData\\\\Local\\\\AirStudio\")",
+      "Bash(powershell -Command:*)",
+      "Bash(cmd /c \"taskkill /F /IM AirStudio.CommercialManager.exe\")",
+      "Bash(findstr:*)",
+      "Bash(cmd /c \"dir /s /b C:\\\\ProgramData\\\\AirStudio\\\\CommercialManager\")",
+      "Bash(start \"\" \"F:\\\\RKV\\\\AirStudio.CommercialManager\\\\src\\\\AirStudio.CommercialManager\\\\bin\\\\Release\\\\net8.0-windows\\\\AirStudio.CommercialManager.exe\")",
+      "Bash(start \"\" \"F:\\\\RKV\\\\AirStudio.CommercialManager\\\\src\\\\AirStudio.CommercialManager\\\\bin\\\\Release\\\\net8.0-windows\\\\win-x64\\\\AirStudio.CommercialManager.exe\")",
+      "Bash(cmd /c \"dir /s /b C:\\\\ProgramData\\\\AirStudio\\\\CommercialManager\\\\Logs\\\\*.log 2>&1\")"
     ]
   }
 }

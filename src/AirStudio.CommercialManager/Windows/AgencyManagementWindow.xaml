@@ -1,0 +1,142 @@
+<Window x:Class="AirStudio.CommercialManager.Windows.AgencyManagementWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Agency Management"
+        Height="550" Width="850"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        Loaded="Window_Loaded">
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
+            <TextBlock Text="&#xE779;" FontFamily="Segoe MDL2 Assets" FontSize="24" VerticalAlignment="Center"
+                       Foreground="#5A8FC4" Margin="0,0,12,0"/>
+            <TextBlock Text="AGENCY MANAGEMENT" FontWeight="Bold" FontSize="18"
+                       Foreground="#B0C4DE" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- Search and Add -->
+        <Grid Grid.Row="1" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Search -->
+            <Grid Grid.Column="0" Margin="0,0,12,0">
+                <TextBox x:Name="SearchTextBox" Height="32"
+                         TextChanged="SearchTextBox_TextChanged"
+                         VerticalContentAlignment="Center"
+                         Padding="28,0,8,0"/>
+                <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                           VerticalAlignment="Center" Margin="8,0,0,0"
+                           Foreground="#808080" IsHitTestVisible="False"/>
+                <TextBlock x:Name="SearchPlaceholder" Text="Search agencies..."
+                           VerticalAlignment="Center" Margin="32,0,0,0"
+                           Foreground="#808080" IsHitTestVisible="False"/>
+            </Grid>
+
+            <!-- Add Button -->
+            <Button Grid.Column="1" Content="+ Add Agency" Click="AddAgencyButton_Click"
+                    Style="{StaticResource PrimaryButtonStyle}" MinWidth="130" Padding="12,6" Height="32"/>
+        </Grid>
+
+        <!-- Agencies DataGrid -->
+        <DataGrid Grid.Row="2" x:Name="AgenciesDataGrid"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  SelectionMode="Single"
+                  SelectionChanged="AgenciesDataGrid_SelectionChanged"
+                  MouseDoubleClick="AgenciesDataGrid_MouseDoubleClick"
+                  CanUserSortColumns="True"
+                  CanUserResizeColumns="True"
+                  CanUserReorderColumns="False"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column"
+                  BorderThickness="1"
+                  BorderBrush="#3A4A5A">
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="70"/>
+                <DataGridTextColumn Header="Agency Name" Binding="{Binding AgencyName}" Width="*" MinWidth="150"/>
+                <DataGridTextColumn Header="Address" Binding="{Binding Address}" Width="180"/>
+                <DataGridTextColumn Header="Phone" Binding="{Binding Phone}" Width="120"/>
+                <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="180"/>
+            </DataGrid.Columns>
+
+            <DataGrid.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Edit Agency" Click="EditAgencyMenuItem_Click">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Delete Agency" Click="DeleteAgencyMenuItem_Click">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                </ContextMenu>
+            </DataGrid.ContextMenu>
+        </DataGrid>
+
+        <!-- Selection Info and Actions -->
+        <Grid Grid.Row="3" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock x:Name="SelectionInfoText" Grid.Column="0"
+                       Text="Select an agency to edit or delete"
+                       VerticalAlignment="Center" Foreground="#808080"/>
+
+            <Button Grid.Column="1" x:Name="EditButton" Content="Edit Selected"
+                    Click="EditAgencyButton_Click" IsEnabled="False"
+                    Width="110" Margin="0,0,8,0"/>
+            <Button Grid.Column="2" x:Name="DeleteButton" Content="Delete Selected"
+                    Click="DeleteAgencyButton_Click" IsEnabled="False"
+                    Width="120"/>
+        </Grid>
+
+        <!-- Warning and Close -->
+        <Grid Grid.Row="4" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <TextBlock Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                           VerticalAlignment="Center" Foreground="#FFA500" Margin="0,0,8,0"/>
+                <TextBlock Text="Agencies with active commercials cannot be deleted"
+                           VerticalAlignment="Center" Foreground="#B0B0B0" FontStyle="Italic"/>
+            </StackPanel>
+
+            <Button Grid.Column="1" Content="Close" Click="CloseButton_Click"
+                    Width="100" IsCancel="True"/>
+        </Grid>
+
+        <!-- Loading Overlay -->
+        <Border x:Name="LoadingOverlay" Grid.Row="0" Grid.RowSpan="5"
+                Background="#80000000" Visibility="Collapsed">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="Loading agencies..." Foreground="White" FontSize="14"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

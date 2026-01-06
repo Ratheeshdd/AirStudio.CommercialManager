@@ -27,18 +27,6 @@ namespace AirStudio.CommercialManager.Windows
             PortTextBox.Text = existingProfile.Port.ToString();
             UsernameTextBox.Text = existingProfile.Username;
             PasswordBox.Password = existingProfile.Password;
-            TimeoutTextBox.Text = existingProfile.TimeoutSeconds.ToString();
-
-            // Set SSL mode
-            for (int i = 0; i < SslModeComboBox.Items.Count; i++)
-            {
-                var item = SslModeComboBox.Items[i] as System.Windows.Controls.ComboBoxItem;
-                if (item != null && item.Content.ToString() == existingProfile.SslMode)
-                {
-                    SslModeComboBox.SelectedIndex = i;
-                    break;
-                }
-            }
         }
 
         private async void TestConnection_Click(object sender, RoutedEventArgs e)
@@ -125,8 +113,6 @@ namespace AirStudio.CommercialManager.Windows
 
         private DatabaseProfile BuildProfile()
         {
-            var sslModeItem = SslModeComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem;
-
             return new DatabaseProfile
             {
                 Id = Profile?.Id ?? Guid.NewGuid().ToString(),
@@ -135,8 +121,8 @@ namespace AirStudio.CommercialManager.Windows
                 Port = int.Parse(PortTextBox.Text),
                 Username = UsernameTextBox.Text.Trim(),
                 Password = PasswordBox.Password,
-                SslMode = sslModeItem?.Content?.ToString() ?? "Preferred",
-                TimeoutSeconds = int.TryParse(TimeoutTextBox.Text, out int t) ? t : 30,
+                SslMode = "None", // Local network - no SSL needed
+                TimeoutSeconds = 30,
                 IsDefault = Profile?.IsDefault ?? false,
                 Order = Profile?.Order ?? 0
             };

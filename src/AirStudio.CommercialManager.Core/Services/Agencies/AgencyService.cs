@@ -53,18 +53,24 @@ namespace AirStudio.CommercialManager.Core.Services.Agencies
                     reader =>
                     {
                         var agencies = new List<Agency>();
-                        while (reader.Read())
+                        // Use do-while because reader is already positioned on first row
+                        do
                         {
+                            // Read Code as string and try to convert to int (database has Code as VARCHAR)
+                            var codeStr = reader.GetStringOrEmpty("Code");
+                            int codeInt = 0;
+                            int.TryParse(codeStr, out codeInt);
+
                             agencies.Add(new Agency
                             {
-                                Code = reader.GetInt32OrDefault("Code"),
+                                Code = codeInt,
                                 AgencyName = reader.GetStringOrEmpty("AgencyName"),
                                 Address = reader.GetStringOrNull("Address"),
                                 PIN = reader.GetStringOrNull("PIN"),
                                 Phone = reader.GetStringOrNull("Phone"),
                                 Email = reader.GetStringOrNull("Email")
                             });
-                        }
+                        } while (reader.Read());
                         return agencies;
                     },
                     cancellationToken: cancellationToken);
@@ -251,11 +257,8 @@ namespace AirStudio.CommercialManager.Core.Services.Agencies
                     sql,
                     reader =>
                     {
-                        if (reader.Read())
-                        {
-                            return reader.GetInt32OrDefault("cnt") > 0;
-                        }
-                        return false;
+                        // Reader is already positioned on first row
+                        return reader.GetValueOrDefault<int>("cnt") > 0;
                     },
                     new Dictionary<string, object> { { "@Code", agencyCode } },
                     cancellationToken);

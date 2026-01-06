@@ -1,0 +1,159 @@
+<Window x:Class="AirStudio.CommercialManager.Windows.TrashViewerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Trash Viewer"
+        Height="500" Width="800"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        Loaded="Window_Loaded">
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
+            <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="24" VerticalAlignment="Center"
+                       Foreground="#D35400" Margin="0,0,12,0"/>
+            <StackPanel>
+                <TextBlock Text="TRASH" FontWeight="Bold" FontSize="18" Foreground="#B0C4DE"/>
+                <TextBlock x:Name="TrashSummaryLabel" Text="0 items" FontSize="12" Foreground="#808080"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Statistics Bar -->
+        <Border Grid.Row="1" Background="#2A3A4A" CornerRadius="4" Padding="12,8" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Total Size" FontSize="10" Foreground="#808080"/>
+                    <TextBlock x:Name="TotalSizeLabel" Text="0 MB" FontSize="14" FontWeight="SemiBold"/>
+                </StackPanel>
+
+                <Rectangle Grid.Column="1" Width="1" Fill="#404040" Margin="12,0"/>
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Expiring Today" FontSize="10" Foreground="#808080"/>
+                    <TextBlock x:Name="ExpiringTodayLabel" Text="0" FontSize="14" FontWeight="SemiBold" Foreground="#E74C3C"/>
+                </StackPanel>
+
+                <Rectangle Grid.Column="3" Width="1" Fill="#404040" Margin="12,0"/>
+
+                <StackPanel Grid.Column="4">
+                    <TextBlock Text="Expiring Soon (7 days)" FontSize="10" Foreground="#808080"/>
+                    <TextBlock x:Name="ExpiringSoonLabel" Text="0" FontSize="14" FontWeight="SemiBold" Foreground="#F39C12"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Trash Items DataGrid -->
+        <DataGrid Grid.Row="2" x:Name="TrashDataGrid"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  SelectionMode="Extended"
+                  CanUserSortColumns="True"
+                  CanUserResizeColumns="True"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column"
+                  BorderThickness="1"
+                  BorderBrush="#3A4A5A">
+
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Header="" Width="30">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      Click="ItemCheckBox_Click" HorizontalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Spot Name" Binding="{Binding SpotName}" Width="*" MinWidth="150"/>
+                <DataGridTextColumn Header="Agency" Binding="{Binding Agency}" Width="120"/>
+                <DataGridTextColumn Header="Deleted On" Binding="{Binding DeletedDate, StringFormat='{}{0:dd-MMM-yy}'}" Width="100"/>
+                <DataGridTextColumn Header="Expires In" Binding="{Binding ExpirationDisplay}" Width="120"/>
+                <DataGridTextColumn Header="Size" Binding="{Binding FileSizeDisplay}" Width="80"/>
+            </DataGrid.Columns>
+
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding DaysUntilExpiration}" Value="0">
+                            <Setter Property="Background" Value="#3AE74C3C"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+        </DataGrid>
+
+        <!-- Action Buttons -->
+        <Grid Grid.Row="3" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock x:Name="SelectionLabel" Grid.Column="0" Text="Selected: 0 items"
+                       VerticalAlignment="Center"/>
+
+            <Button Grid.Column="1" x:Name="RestoreButton" Content="Restore Selected"
+                    Click="RestoreButton_Click" IsEnabled="False"
+                    Width="120" Margin="0,0,8,0"/>
+            <Button Grid.Column="2" x:Name="DeleteButton" Content="Delete Permanently"
+                    Click="DeleteButton_Click" IsEnabled="False"
+                    Width="130" Margin="0,0,8,0"/>
+            <Button Grid.Column="3" x:Name="EmptyTrashButton" Content="Empty Trash"
+                    Click="EmptyTrashButton_Click"
+                    Width="100" Foreground="#E74C3C"/>
+        </Grid>
+
+        <!-- Footer -->
+        <Grid Grid.Row="4" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="Auto-purge: Items older than 30 days are permanently deleted"
+                       VerticalAlignment="Center" Foreground="#808080" FontStyle="Italic"/>
+
+            <Button Grid.Column="1" Content="Close" Click="CloseButton_Click"
+                    Width="100" IsCancel="True"/>
+        </Grid>
+
+        <!-- Loading Overlay -->
+        <Border x:Name="LoadingOverlay" Grid.Row="0" Grid.RowSpan="5"
+                Background="#80000000" Visibility="Collapsed">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="Processing..." Foreground="White" FontSize="14"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Empty State -->
+        <Border x:Name="EmptyState" Grid.Row="2" Visibility="Collapsed">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="48"
+                           HorizontalAlignment="Center" Foreground="#404040"/>
+                <TextBlock Text="Trash is empty" FontSize="16" Foreground="#808080"
+                           HorizontalAlignment="Center" Margin="0,8,0,0"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

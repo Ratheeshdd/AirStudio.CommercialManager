@@ -42,14 +42,16 @@ namespace AirStudio.CommercialManager.Core.Services.Channels
                     reader =>
                     {
                         var channels = new List<Channel>();
-                        while (reader.Read())
+                        // Use do-while because the reader is already positioned on the first row
+                        // by ReadFirstSuccessAsync before passing to the mapper
+                        do
                         {
                             var channelName = reader.GetStringOrEmpty("Channel");
                             if (!string.IsNullOrWhiteSpace(channelName))
                             {
                                 channels.Add(new Channel { Name = channelName });
                             }
-                        }
+                        } while (reader.Read());
                         return channels;
                     },
                     cancellationToken: cancellationToken);

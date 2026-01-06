@@ -56,6 +56,11 @@ namespace AirStudio.CommercialManager.Controls
 
         private void ApplyFilter()
         {
+            // Guard against calls before control is fully loaded
+            if (!IsLoaded || LogGrid == null || ShowInfoCheckBox == null ||
+                ShowWarningsCheckBox == null || ShowErrorsCheckBox == null)
+                return;
+
             var filtered = _allLogs.AsEnumerable();
 
             if (ShowInfoCheckBox.IsChecked != true)
@@ -77,21 +82,25 @@ namespace AirStudio.CommercialManager.Controls
             LogGrid.ItemsSource = filteredList;
 
             // Update counts
-            LogCountLabel.Text = $"{filteredList.Count} entries";
+            if (LogCountLabel != null)
+                LogCountLabel.Text = $"{filteredList.Count} entries";
 
             var errorCount = _allLogs.Count(l => l.IsError);
-            if (errorCount > 0)
+            if (ErrorCountLabel != null)
             {
-                ErrorCountLabel.Text = $"{errorCount} error(s)";
-                ErrorCountLabel.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                ErrorCountLabel.Visibility = Visibility.Collapsed;
+                if (errorCount > 0)
+                {
+                    ErrorCountLabel.Text = $"{errorCount} error(s)";
+                    ErrorCountLabel.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    ErrorCountLabel.Visibility = Visibility.Collapsed;
+                }
             }
 
             // Auto-scroll to bottom
-            if (AutoScrollCheckBox.IsChecked == true && filteredList.Count > 0)
+            if (AutoScrollCheckBox?.IsChecked == true && filteredList.Count > 0)
             {
                 LogGrid.ScrollIntoView(filteredList[filteredList.Count - 1]);
             }

@@ -38,9 +38,14 @@ namespace AirStudio.CommercialManager.Core.Models
         public string Password { get; set; } = string.Empty;
 
         /// <summary>
-        /// SSL mode for the connection
+        /// Display-friendly password (shows asterisks for security)
         /// </summary>
-        public string SslMode { get; set; } = "Preferred";
+        public string PasswordDisplay => string.IsNullOrEmpty(Password) ? "" : "********";
+
+        /// <summary>
+        /// SSL mode for the connection (default: None for local networks)
+        /// </summary>
+        public string SslMode { get; set; } = "None";
 
         /// <summary>
         /// Connection timeout in seconds

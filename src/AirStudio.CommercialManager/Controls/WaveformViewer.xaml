@@ -4,18 +4,12 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             d:DesignHeight="200" d:DesignWidth="600"
+             d:DesignHeight="120" d:DesignWidth="600"
              Background="#0D1B2A">
 
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <!-- Waveform Display Area -->
-        <Border Grid.Row="0" CornerRadius="4" ClipToBounds="True"
+        <!-- Simplified: Waveform only with time overlay, no slider or buttons -->
+        <Border CornerRadius="4" ClipToBounds="True"
                 MouseLeftButtonDown="WaveformArea_MouseLeftButtonDown">
             <Grid>
                 <!-- Waveform Canvas -->
@@ -26,6 +20,27 @@
                     <Line x:Name="Playhead" Y1="0" Y2="{Binding ActualHeight, ElementName=WaveformCanvas}"
                           Stroke="#FF6B6B" StrokeThickness="2" Visibility="Collapsed"/>
                 </Canvas>
+
+                <!-- Time Overlay (bottom-left corner) -->
+                <Border x:Name="TimeOverlayBorder" VerticalAlignment="Bottom" HorizontalAlignment="Left"
+                        Background="#80000000" CornerRadius="2" Padding="6,2" Margin="4,0,0,4"
+                        Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="CurrentTimeLabel" Text="00:00:00"
+                                   Foreground="#B0C4DE" FontSize="10" FontFamily="Consolas"/>
+                        <TextBlock Text=" / " Foreground="#607D8B" FontSize="10"/>
+                        <TextBlock x:Name="TotalTimeLabel" Text="00:00:00"
+                                   Foreground="#B0C4DE" FontSize="10" FontFamily="Consolas"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Segment Info (for capsules - bottom-right corner) -->
+                <Border x:Name="SegmentInfo" VerticalAlignment="Bottom" HorizontalAlignment="Right"
+                        Background="#80000000" CornerRadius="2" Padding="6,2" Margin="0,0,4,4"
+                        Visibility="Collapsed">
+                    <TextBlock x:Name="SegmentLabel" Text="Segment: --"
+                               Foreground="#B0C4DE" FontSize="10"/>
+                </Border>
 
                 <!-- Loading Overlay -->
                 <Border x:Name="LoadingOverlay" Background="#80000000" Visibility="Collapsed">
@@ -42,44 +57,5 @@
                 </Border>
             </Grid>
         </Border>
-
-        <!-- Time Display -->
-        <Grid Grid.Row="1" Margin="0,8,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
-            <TextBlock Grid.Column="0" x:Name="CurrentTimeLabel" Text="00:00:00"
-                       Foreground="#B0C4DE" FontSize="11" FontFamily="Consolas"/>
-
-            <Slider Grid.Column="1" x:Name="PositionSlider" Margin="12,0"
-                    Minimum="0" Maximum="100" Value="0"
-                    ValueChanged="PositionSlider_ValueChanged"
-                    PreviewMouseDown="PositionSlider_PreviewMouseDown"
-                    PreviewMouseUp="PositionSlider_PreviewMouseUp"
-                    IsEnabled="False"/>
-
-            <TextBlock Grid.Column="2" x:Name="TotalTimeLabel" Text="00:00:00"
-                       Foreground="#B0C4DE" FontSize="11" FontFamily="Consolas"/>
-        </Grid>
-
-        <!-- Playback Controls -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
-            <Button x:Name="PlayPauseButton" Content="▶" Width="40" Height="30"
-                    Click="PlayPauseButton_Click" IsEnabled="False"
-                    ToolTip="Play/Pause"/>
-            <Button x:Name="StopButton" Content="■" Width="40" Height="30"
-                    Click="StopButton_Click" IsEnabled="False" Margin="4,0,0,0"
-                    ToolTip="Stop"/>
-
-            <!-- Segment Info (for capsules) -->
-            <Border x:Name="SegmentInfo" Margin="20,0,0,0" Padding="8,4" CornerRadius="4"
-                    Background="#1A2A40" Visibility="Collapsed">
-                <TextBlock x:Name="SegmentLabel" Text="Segment: --"
-                           Foreground="#B0C4DE" FontSize="11"/>
-            </Border>
-        </StackPanel>
     </Grid>
 </UserControl>

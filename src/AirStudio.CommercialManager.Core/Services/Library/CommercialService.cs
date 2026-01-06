@@ -29,6 +29,31 @@ namespace AirStudio.CommercialManager.Core.Services.Library
         }
 
         /// <summary>
+        /// Convert legacy drive letter paths (e.g., X:\Commercial Playlist\...) to UNC paths
+        /// </summary>
+        private string ConvertToUncPath(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return path;
+
+            // Check if path starts with a drive letter (e.g., X:\, Y:\)
+            if (path.Length >= 2 && char.IsLetter(path[0]) && path[1] == ':')
+            {
+                var primaryXRoot = _channel?.PrimaryXRoot;
+                if (!string.IsNullOrEmpty(primaryXRoot))
+                {
+                    // Extract the relative path after the drive letter (e.g., \Commercial Playlist\file.TAG)
+                    var relativePath = path.Substring(2); // Remove "X:"
+                    // Combine with UNC root (remove trailing slash from UNC if present)
+                    var uncRoot = primaryXRoot.TrimEnd('\\', '/');
+                    return uncRoot + relativePath;
+                }
+            }
+
+            return path;
+        }
+
+        /// <summary>
         /// Load all commercials from the database
         /// </summary>
         public async Task<List<Commercial>> LoadCommercialsAsync(CancellationToken cancellationToken = default)
@@ -36,6 +61,8 @@ namespace AirStudio.CommercialManager.Core.Services.Library
             try
             {
                 var router = DatabaseRouter.Instance;
+                // Note: The actual commercials table doesn't have Id, DateIn, Status, DeletedDate columns
+                // We use Code as identifier and LastUpdate for date tracking
                 var sql = $@"SELECT Code, Agency, Spot, Title, Duration, Otherinfo, Filename, User, LastUpdate
                             FROM {TABLE_NAME}
                             ORDER BY Spot";
@@ -46,11 +73,17 @@ namespace AirStudio.CommercialManager.Core.Services.Library
                     reader =>
                     {
                         var commercials = new List<Commercial>();
-                        while (reader.Read())
+                        // Use do-while because reader is already positioned on first row
+                        do
                         {
-                            commercials.Add(new Commercial
+                            // Read Code as string and try to convert to int (database has Code as VARCHAR)
+                            var codeStr = reader.GetStringOrEmpty("Code");
+                            int codeInt = 0;
+                            int.TryParse(codeStr, out codeInt);
+
+                            var commercial = new Commercial
                             {
-                                Code = reader.GetInt32OrDefault("Code"),
+                                Code = codeInt,
                                 Agency = reader.GetStringOrEmpty("Agency"),
                                 Spot = reader.GetStringOrEmpty("Spot"),
                                 Title = reader.GetStringOrEmpty("Title"),
@@ -59,8 +92,13 @@ namespace AirStudio.CommercialManager.Core.Services.Library
                                 Filename = reader.GetStringOrEmpty("Filename"),
                                 User = reader.GetStringOrNull("User"),
                                 LastUpdate = reader.GetDateTimeOrDefault("LastUpdate")
-                            });
-                        }
+                            };
+                            // Use Code as Id and LastUpdate as DateIn for compatibility
+                            commercial.Id = commercial.Code;
+                            commercial.DateIn = commercial.LastUpdate;
+                            commercial.Status = "Active";
+                            commercials.Add(commercial);
+                        } while (reader.Read());
                         return commercials;
                     },
                     cancellationToken: cancellationToken);
@@ -290,6 +328,215 @@ namespace AirStudio.CommercialManager.Core.Services.Library
         public void InvalidateCache()
         {
             _lastRefresh = DateTime.MinValue;
+        }
+
+        /// <summary>
+        /// Load all scheduled commercials from the playlist table
+        /// Filters by ProgType='COMMERCIALS'
+        /// </summary>
+        public async Task<List<ScheduledCommercial>> LoadScheduledCommercialsAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var router = DatabaseRouter.Instance;
+
+                var sql = @"SELECT Id, TxDate, TxTime, Programme, Title, Duration, Validity,
+                                   MainPath, UserName, MobileNo, LoginUser, LastUpdate
+                           FROM playlist
+                           WHERE ProgType = 'COMMERCIALS'
+                           ORDER BY TxDate ASC, TxTime ASC";
+
+                var result = await router.ReadFirstSuccessAsync(
+                    _channelDatabaseName,
+                    sql,
+                    reader =>
+                    {
+                        var schedules = new List<ScheduledCommercial>();
+                        do
+                        {
+                            var rawPath = reader.GetStringOrEmpty("MainPath");
+                            schedules.Add(new ScheduledCommercial
+                            {
+                                Id = reader.GetValueOrDefault<int>("Id"),
+                                TxDate = reader.GetDateTimeOrDefault("TxDate"),
+                                TxTime = reader.GetStringOrEmpty("TxTime"),
+                                CapsuleName = reader.GetStringOrEmpty("Programme"),
+                                Title = reader.GetStringOrEmpty("Title"),
+                                Duration = reader.GetStringOrEmpty("Duration"),
+                                ToDate = reader.GetDateTimeOrDefault("Validity"),
+                                TagFilePath = ConvertToUncPath(rawPath),
+                                UserName = reader.GetStringOrNull("UserName"),
+                                MobileNo = reader.GetStringOrNull("MobileNo"),
+                                LoginUser = reader.GetStringOrNull("LoginUser"),
+                                LastUpdate = reader.GetDateTimeOrDefault("LastUpdate")
+                            });
+                        } while (reader.Read());
+                        return schedules;
+                    },
+                    cancellationToken: cancellationToken);
+
+                if (result.Success)
+                {
+                    // Data will be null if there are no rows (empty result set)
+                    var data = result.Data ?? new List<ScheduledCommercial>();
+                    LogService.Info($"Loaded {data.Count} scheduled commercials from {_channelDatabaseName}");
+                    return data;
+                }
+                else
+                {
+                    LogService.Warning($"Failed to load scheduled commercials: {result.ErrorMessage}");
+                    return new List<ScheduledCommercial>();
+                }
+            }
+            catch (Exception ex)
+            {
+                LogService.Error("Exception loading scheduled commercials", ex);
+                return new List<ScheduledCommercial>();
+            }
+        }
+
+        /// <summary>
+        /// Delete a scheduled commercial from the playlist table
+        /// </summary>
+        public async Task<DbOperationResult> DeleteScheduledCommercialAsync(int id, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var router = DatabaseRouter.Instance;
+                var sql = "DELETE FROM playlist WHERE Id = @Id AND ProgType = 'COMMERCIALS'";
+                var parameters = new Dictionary<string, object> { { "@Id", id } };
+
+                var result = await router.WriteFanOutAsync(_channelDatabaseName, sql, parameters, cancellationToken);
+
+                if (result.AnySucceeded)
+                {
+                    LogService.Info($"Deleted scheduled commercial ID={id} from {_channelDatabaseName}");
+                }
+
+                return result.AnySucceeded
+                    ? DbOperationResult.Succeeded(_channelDatabaseName, result.SuccessCount)
+                    : DbOperationResult.Failed(_channelDatabaseName, result.GetSummary());
+            }
+            catch (Exception ex)
+            {
+                LogService.Error("Exception deleting scheduled commercial", ex);
+                return DbOperationResult.Failed(_channelDatabaseName, ex.Message, ex);
+            }
+        }
+
+        /// <summary>
+        /// Get all commercials for a specific year (for cleanup window)
+        /// </summary>
+        public async Task<List<Commercial>> GetCommercialsByYearAsync(int? year = null, bool includeDeleted = false, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var router = DatabaseRouter.Instance;
+
+                var whereClause = year.HasValue
+                    ? "WHERE YEAR(LastUpdate) = @Year"
+                    : "WHERE 1=1";
+
+                var sql = $@"SELECT Code, Agency, Spot, Title, Duration, Otherinfo, Filename, User, LastUpdate
+                            FROM {TABLE_NAME}
+                            {whereClause}
+                            ORDER BY LastUpdate DESC, Spot";
+
+                var parameters = year.HasValue
+                    ? new Dictionary<string, object> { { "Year", year.Value } }
+                    : null;
+
+                var result = await router.ReadFirstSuccessAsync(
+                    _channelDatabaseName,
+                    sql,
+                    reader =>
+                    {
+                        var commercials = new List<Commercial>();
+                        do
+                        {
+                            // Read Code as string and try to convert to int (database has Code as VARCHAR)
+                            var codeStr = reader.GetStringOrEmpty("Code");
+                            int codeInt = 0;
+                            int.TryParse(codeStr, out codeInt);
+
+                            var commercial = new Commercial
+                            {
+                                Code = codeInt,
+                                Agency = reader.GetStringOrEmpty("Agency"),
+                                Spot = reader.GetStringOrEmpty("Spot"),
+                                Title = reader.GetStringOrEmpty("Title"),
+                                Duration = reader.GetStringOrEmpty("Duration"),
+                                Otherinfo = reader.GetStringOrNull("Otherinfo"),
+                                Filename = reader.GetStringOrEmpty("Filename"),
+                                User = reader.GetStringOrNull("User"),
+                                LastUpdate = reader.GetDateTimeOrDefault("LastUpdate")
+                            };
+                            commercial.Id = commercial.Code;
+                            commercial.DateIn = commercial.LastUpdate;
+                            commercial.Status = "Active";
+                            commercials.Add(commercial);
+                        } while (reader.Read());
+                        return commercials;
+                    },
+                    parameters,
+                    cancellationToken);
+
+                if (result.Success && result.Data != null)
+                {
+                    return result.Data;
+                }
+
+                return new List<Commercial>();
+            }
+            catch (Exception ex)
+            {
+                LogService.Error($"Exception loading commercials by year {year}", ex);
+                return new List<Commercial>();
+            }
+        }
+
+        /// <summary>
+        /// Get available years that have commercials
+        /// </summary>
+        public async Task<List<int>> GetAvailableYearsAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var router = DatabaseRouter.Instance;
+                var sql = $@"SELECT DISTINCT YEAR(LastUpdate) as Year
+                            FROM {TABLE_NAME}
+                            ORDER BY Year DESC";
+
+                var result = await router.ReadFirstSuccessAsync(
+                    _channelDatabaseName,
+                    sql,
+                    reader =>
+                    {
+                        var years = new List<int>();
+                        do
+                        {
+                            var year = reader.GetValueOrDefault<int>("Year");
+                            if (year > 1900)
+                            {
+                                years.Add(year);
+                            }
+                        } while (reader.Read());
+                        return years;
+                    },
+                    cancellationToken: cancellationToken);
+
+                if (result.Success && result.Data != null)
+                {
+                    return result.Data;
+                }
+
+                return new List<int>();
+            }
+            catch (Exception ex)
+            {
+                LogService.Error("Exception getting available years", ex);
+                return new List<int>();
+            }
         }
     }
 }

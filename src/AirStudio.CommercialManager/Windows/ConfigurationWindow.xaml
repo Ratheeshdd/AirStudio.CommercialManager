@@ -3,12 +3,18 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:AirStudio.CommercialManager.Windows"
         mc:Ignorable="d"
         Title="Configuration - AirStudio Commercial Manager"
         Height="650" Width="900"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResize"
         Background="{DynamicResource WindowBackgroundBrush}">
+
+    <Window.Resources>
+        <local:BoolToYesNoConverter x:Key="BoolToYesNoConverter"/>
+        <local:BoolToColorConverter x:Key="BoolToColorConverter"/>
+    </Window.Resources>
 
     <Grid Margin="16">
         <Grid.RowDefinitions>
@@ -71,13 +77,12 @@
                                   SelectionMode="Single"
                                   Margin="0,0,0,8">
                             <DataGrid.Columns>
-                                <DataGridCheckBoxColumn Header="Default" Binding="{Binding IsDefault}" Width="60"/>
-                                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="120"/>
-                                <DataGridTextColumn Header="Host" Binding="{Binding Host}" Width="150"/>
-                                <DataGridTextColumn Header="Port" Binding="{Binding Port}" Width="60"/>
-                                <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="100"/>
-                                <DataGridTextColumn Header="SSL Mode" Binding="{Binding SslMode}" Width="80"/>
-                                <DataGridTextColumn Header="Timeout" Binding="{Binding TimeoutSeconds}" Width="60"/>
+                                <DataGridCheckBoxColumn Header="Default" Binding="{Binding IsDefault}" Width="60" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="120" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Host/IP" Binding="{Binding Host}" Width="150" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Port" Binding="{Binding Port}" Width="60" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="120" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Password" Binding="{Binding PasswordDisplay, Mode=OneWay}" Width="100" IsReadOnly="True"/>
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -111,12 +116,22 @@
                                   AutoGenerateColumns="False"
                                   CanUserAddRows="False"
                                   CanUserDeleteRows="False"
+                                  CanUserResizeRows="False"
+                                  IsReadOnly="True"
                                   SelectionMode="Single"
                                   Margin="0,0,0,8">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Channel" Binding="{Binding Channel}" Width="150" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="X Root Targets" Binding="{Binding XRootTargetsDisplay}" Width="*" IsReadOnly="True"/>
-                                <DataGridCheckBoxColumn Header="Configured" Binding="{Binding IsConfigured}" Width="80" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Channel" Binding="{Binding Channel}" Width="150"/>
+                                <DataGridTextColumn Header="X Root Targets" Binding="{Binding XRootTargetsDisplay}" Width="*"/>
+                                <DataGridTemplateColumn Header="Configured" Width="80">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding IsConfigured, Converter={StaticResource BoolToYesNoConverter}}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       Foreground="{Binding IsConfigured, Converter={StaticResource BoolToColorConverter}}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -138,27 +153,52 @@
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" Margin="0,0,0,8">
                             <TextBlock Text="Allowed Users" FontWeight="SemiBold" Foreground="#B0C4DE"/>
-                            <TextBlock Text="Only these users can run the application. Leave empty to allow all users."
+                            <TextBlock Text="Check the users who should be allowed to use this application."
                                        Foreground="#607D8B" FontSize="11" Margin="0,4,0,0"/>
                         </StackPanel>
 
-                        <!-- Allowed Users List -->
-                        <ListBox Grid.Row="1" x:Name="UsersListBox"
-                                 Background="#1A2A40" Foreground="#FFFFFF"
-                                 BorderBrush="#3D5A80" BorderThickness="1"
-                                 Margin="0,0,0,8"/>
+                        <!-- Search and Refresh -->
+                        <Grid Grid.Row="1" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="UserSearchTextBox" Grid.Column="0" Height="28"
+                                     TextChanged="UserSearchTextBox_TextChanged"
+                                     VerticalContentAlignment="Center" Margin="0,0,8,0"/>
+                            <Button Grid.Column="1" Content="Load Domain Users" Click="LoadDomainUsers_Click"
+                                    Width="140" Height="28"/>
+                        </Grid>
+
+                        <!-- Domain Users Grid -->
+                        <DataGrid Grid.Row="2" x:Name="UsersDataGrid"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  SelectionMode="Single"
+                                  GridLinesVisibility="Horizontal"
+                                  HeadersVisibility="Column"
+                                  Margin="0,0,0,8">
+                            <DataGrid.Columns>
+                                <DataGridCheckBoxColumn Header="Allow" Binding="{Binding IsAllowed, UpdateSourceTrigger=PropertyChanged}" Width="50"/>
+                                <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="200" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Display Name" Binding="{Binding DisplayName}" Width="*" IsReadOnly="True"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
 
                         <!-- User Actions -->
-                        <StackPanel Grid.Row="2" Orientation="Horizontal">
-                            <Button Content="Add User" Click="AddUser_Click" Width="100"/>
-                            <Button Content="Remove User" Click="RemoveUser_Click" Width="100"/>
-                            <Button Content="Add Current User" Click="AddCurrentUser_Click" Width="120" Margin="20,0,0,0"/>
+                        <StackPanel Grid.Row="3" Orientation="Horizontal">
+                            <Button Content="Add Manual User" Click="AddUser_Click" Width="120"/>
+                            <Button Content="Add Current User" Click="AddCurrentUser_Click" Width="120"/>
+                            <TextBlock x:Name="UserCountLabel" Text="0 users allowed" VerticalAlignment="Center"
+                                       Foreground="#607D8B" Margin="20,0,0,0"/>
                         </StackPanel>
                     </Grid>
                 </Border>

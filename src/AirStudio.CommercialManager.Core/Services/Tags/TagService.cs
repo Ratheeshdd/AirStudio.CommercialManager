@@ -34,12 +34,11 @@ namespace AirStudio.CommercialManager.Core.Services.Tags
         /// </summary>
         public string GetPrimaryTagFolder()
         {
-            var primaryPath = _channel.PrimaryCommercialsPath;
-            if (string.IsNullOrEmpty(primaryPath))
+            var primaryXRoot = _channel.PrimaryXRoot;
+            if (string.IsNullOrEmpty(primaryXRoot))
                 return null;
 
-            var xRoot = Path.GetPathRoot(primaryPath);
-            return Path.Combine(xRoot, TAG_FOLDER);
+            return Path.Combine(primaryXRoot, TAG_FOLDER);
         }
 
         /// <summary>
@@ -67,18 +66,31 @@ namespace AirStudio.CommercialManager.Core.Services.Tags
         public List<string> ListTagFiles()
         {
             var tagFolder = GetPrimaryTagFolder();
-            if (string.IsNullOrEmpty(tagFolder) || !Directory.Exists(tagFolder))
+            LogService.Info($"ListTagFiles: PrimaryXRoot='{_channel.PrimaryXRoot}', TagFolder='{tagFolder}'");
+
+            if (string.IsNullOrEmpty(tagFolder))
+            {
+                LogService.Warning("ListTagFiles: TagFolder is null or empty");
                 return new List<string>();
+            }
+
+            if (!Directory.Exists(tagFolder))
+            {
+                LogService.Warning($"ListTagFiles: Directory does not exist: {tagFolder}");
+                return new List<string>();
+            }
 
             try
             {
-                return Directory.GetFiles(tagFolder, "*.TAG", SearchOption.TopDirectoryOnly)
+                var files = Directory.GetFiles(tagFolder, "*.TAG", SearchOption.TopDirectoryOnly)
                     .OrderByDescending(f => File.GetLastWriteTime(f))
                     .ToList();
+                LogService.Info($"ListTagFiles: Found {files.Count} TAG files in {tagFolder}");
+                return files;
             }
             catch (Exception ex)
             {
-                LogService.Error("Failed to list TAG files", ex);
+                LogService.Error($"Failed to list TAG files from {tagFolder}", ex);
                 return new List<string>();
             }
         }
@@ -98,6 +110,13 @@ namespace AirStudio.CommercialManager.Core.Services.Tags
             {
                 var content = File.ReadAllText(filePath);
                 var tagFile = TagFile.Parse(content, filePath);
+
+                // Convert legacy drive letter paths to UNC paths in all entries
+                foreach (var entry in tagFile.Entries)
+                {
+                    entry.AudioPath = ConvertToUncPath(entry.AudioPath);
+                }
+
                 LogService.Info($"Loaded TAG file: {tagFile.FileName} ({tagFile.CutCount} cuts)");
                 return tagFile;
             }
@@ -106,6 +125,31 @@ namespace AirStudio.CommercialManager.Core.Services.Tags
                 LogService.Error($"Failed to load TAG file: {filePath}", ex);
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Convert legacy drive letter paths (e.g., X:\COMMERCIALS\...) to UNC paths
+        /// </summary>
+        private string ConvertToUncPath(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return path;
+
+            // Check if path starts with a drive letter (e.g., X:\, Y:\)
+            if (path.Length >= 2 && char.IsLetter(path[0]) && path[1] == ':')
+            {
+                var primaryXRoot = _channel?.PrimaryXRoot;
+                if (!string.IsNullOrEmpty(primaryXRoot))
+                {
+                    // Extract the relative path after the drive letter (e.g., \COMMERCIALS\file.wav)
+                    var relativePath = path.Substring(2); // Remove "X:"
+                    // Combine with UNC root (remove trailing slash from UNC if present)
+                    var uncRoot = primaryXRoot.TrimEnd('\\', '/');
+                    return uncRoot + relativePath;
+                }
+            }
+
+            return path;
         }
 
         /// <summary>
@@ -366,7 +410,7 @@ namespace AirStudio.CommercialManager.Core.Services.Tags
                               UserName = @UserName,
                               MobileNo = @MobileNo,
                               LastUpdate = NOW()
-                              WHERE Mode = 2 AND TxDate = @TxDate AND TxTime = @TxTime AND MainPath = @OldMainPath";
+                              WHERE ProgType = 'COMMERCIALS' AND TxDate = @TxDate AND TxTime = @TxTime AND MainPath = @OldMainPath";
 
             var insertSql = $@"INSERT INTO {PLAYLIST_TABLE}
                               (Mode, TxTime, TxDate, Validity, Programme, Title, Duration, StopTime, ProgType, MainPath, LoginUser, UserName, MobileNo, LastUpdate)
@@ -458,7 +502,7 @@ namespace AirStudio.CommercialManager.Core.Services.Tags
                               UserName = @UserName,
                               MobileNo = @MobileNo,
                               LastUpdate = NOW()
-                              WHERE Mode = 2 AND MainPath = @OldMainPath";
+                              WHERE ProgType = 'COMMERCIALS' AND MainPath = @OldMainPath";
 
             var loginUser = Environment.UserDomainName + "\\" + Environment.UserName;
 
@@ -513,7 +557,7 @@ namespace AirStudio.CommercialManager.Core.Services.Tags
         {
             var router = DatabaseRouter.Instance;
 
-            var sql = $"DELETE FROM {PLAYLIST_TABLE} WHERE Mode = 2 AND MainPath = @MainPath";
+            var sql = $"DELETE FROM {PLAYLIST_TABLE} WHERE ProgType = 'COMMERCIALS' AND MainPath = @MainPath";
             var parameters = new Dictionary<string, object>
             {
                 { "@MainPath", tagPath }
@@ -551,7 +595,7 @@ namespace AirStudio.CommercialManager.Core.Services.Tags
             var router = DatabaseRouter.Instance;
 
             var sql = $@"SELECT COUNT(*) FROM {PLAYLIST_TABLE}
-                        WHERE Mode = 2 AND TxDate = @TxDate AND TxTime = @TxTime";
+                        WHERE ProgType = 'COMMERCIALS' AND TxDate = @TxDate AND TxTime = @TxTime";
 
             var result = await router.ReadFirstSuccessAsync(
                 _channelDatabaseName,

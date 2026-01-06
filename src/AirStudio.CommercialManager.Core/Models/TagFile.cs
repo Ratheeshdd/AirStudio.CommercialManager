@@ -200,15 +200,37 @@ namespace AirStudio.CommercialManager.Core.Models
 
         /// <summary>
         /// Get commercial entries (excluding terminator)
+        /// For single-commercial TAG files, the only entry has Category=1 but should be treated as a commercial
         /// </summary>
-        public List<TagEntry> CommercialEntries =>
-            Entries.Where(e => !e.IsTerminator).ToList();
+        public List<TagEntry> CommercialEntries
+        {
+            get
+            {
+                // If there's only one entry with Category=1, treat it as a commercial (single-spot TAG)
+                if (Entries.Count == 1 && Entries[0].Category == 1)
+                {
+                    return Entries.ToList();
+                }
+
+                // For multi-entry TAGs, Category=2 are commercials, Category=1 is terminator
+                return Entries.Where(e => e.Category == 2).ToList();
+            }
+        }
 
         /// <summary>
-        /// Get the terminator entry
+        /// Get the terminator entry (only for multi-entry TAGs)
         /// </summary>
-        public TagEntry TerminatorEntry =>
-            Entries.FirstOrDefault(e => e.IsTerminator);
+        public TagEntry TerminatorEntry
+        {
+            get
+            {
+                // Single-entry TAGs don't have a separate terminator
+                if (Entries.Count <= 1)
+                    return null;
+
+                return Entries.FirstOrDefault(e => e.Category == 1);
+            }
+        }
 
         /// <summary>
         /// Number of commercial cuts

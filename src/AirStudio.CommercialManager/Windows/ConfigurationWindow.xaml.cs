@@ -2,9 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.DirectoryServices;
+using System.DirectoryServices.AccountManagement;
+using System.Globalization;
 using System.Linq;
 using System.Security.Principal;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Data;
+using System.Windows.Media;
 using Microsoft.Win32;
 using AirStudio.CommercialManager.Core.Models;
 using AirStudio.CommercialManager.Core.Services.Channels;
@@ -20,7 +26,8 @@ namespace AirStudio.CommercialManager.Windows
     {
         private ObservableCollection<DatabaseProfileViewModel> _databaseProfiles;
         private ObservableCollection<ChannelLocationViewModel> _channelLocations;
-        private ObservableCollection<string> _allowedUsers;
+        private ObservableCollection<DomainUserViewModel> _domainUsers;
+        private List<DomainUserViewModel> _allDomainUsers; // For filtering
 
         private bool _hasChanges = false;
 
@@ -49,10 +56,28 @@ namespace AirStudio.CommercialManager.Windows
                     Enumerable.Empty<ChannelLocationViewModel>());
                 LocationsGrid.ItemsSource = _channelLocations;
 
-                // Load allowed users
-                _allowedUsers = new ObservableCollection<string>(
-                    config.AllowedUsers ?? new List<string>());
-                UsersListBox.ItemsSource = _allowedUsers;
+                // Load allowed users - initialize with saved allowed users
+                _domainUsers = new ObservableCollection<DomainUserViewModel>();
+                _allDomainUsers = new List<DomainUserViewModel>();
+
+                // Pre-populate with saved allowed users (marked as allowed)
+                // Normalize usernames when loading to fix any malformed entries
+                foreach (var username in config.AllowedUsers ?? new List<string>())
+                {
+                    var normalizedUsername = NormalizeUsername(username);
+                    var userVm = new DomainUserViewModel
+                    {
+                        Username = normalizedUsername,
+                        DisplayName = normalizedUsername, // Will be updated when domain users are loaded
+                        IsAllowed = true
+                    };
+                    userVm.PropertyChanged += DomainUser_PropertyChanged;
+                    _domainUsers.Add(userVm);
+                    _allDomainUsers.Add(userVm);
+                }
+
+                UsersDataGrid.ItemsSource = _domainUsers;
+                UpdateUserCount();
 
                 // Load advanced settings
                 SequenceBaseNNTextBox.Text = config.SequenceBaseNN.ToString();
@@ -203,10 +228,11 @@ namespace AirStudio.CommercialManager.Windows
                 return;
             }
 
-            var input = Microsoft.VisualBasic.Interaction.InputBox(
+            var input = InputDialog.Show(
                 $"Enter X root targets for '{selected.Channel}' (comma-separated, e.g., X:\\,Y:\\):",
                 "Edit X Targets",
-                string.Join(",", selected.XRootTargets ?? new List<string>()));
+                string.Join(",", selected.XRootTargets ?? new List<string>()),
+                this);
 
             if (!string.IsNullOrEmpty(input))
             {
@@ -229,21 +255,30 @@ namespace AirStudio.CommercialManager.Windows
                 return;
             }
 
-            var dialog = new System.Windows.Forms.FolderBrowserDialog
-            {
-                Description = $"Select X root target for {selected.Channel}"
-            };
+            var input = InputDialog.Show(
+                $"Enter X root target path for '{selected.Channel}' (e.g., X:\\ or \\\\server\\share):",
+                "Add X Target",
+                "X:\\",
+                this);
 
-            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            if (!string.IsNullOrWhiteSpace(input))
             {
+                var path = input.Trim();
+
                 if (selected.XRootTargets == null)
                     selected.XRootTargets = new List<string>();
 
-                if (!selected.XRootTargets.Contains(dialog.SelectedPath))
+                if (!selected.XRootTargets.Contains(path, StringComparer.OrdinalIgnoreCase))
                 {
-                    selected.XRootTargets.Add(dialog.SelectedPath);
+                    selected.XRootTargets.Add(path);
                     LocationsGrid.Items.Refresh();
                     _hasChanges = true;
+                    LogService.Info($"Added target '{path}' for channel '{selected.Channel}'");
+                }
+                else
+                {
+                    MessageBox.Show("This target path is already configured.",
+                        "Duplicate", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
         }
@@ -356,44 +391,272 @@ namespace AirStudio.CommercialManager.Windows
 
         #region Users Tab Handlers
 
-        private void AddUser_Click(object sender, RoutedEventArgs e)
+        private async void LoadDomainUsers_Click(object sender, RoutedEventArgs e)
         {
-            var input = Microsoft.VisualBasic.Interaction.InputBox(
-                "Enter username (DOMAIN\\user or MACHINE\\user):",
-                "Add User");
-
-            if (!string.IsNullOrWhiteSpace(input))
+            try
             {
-                if (!_allowedUsers.Contains(input, StringComparer.OrdinalIgnoreCase))
+                IsEnabled = false;
+                LogService.Info("Loading domain users...");
+
+                // Save currently allowed usernames
+                var allowedUsernames = new HashSet<string>(
+                    _allDomainUsers.Where(u => u.IsAllowed).Select(u => u.Username),
+                    StringComparer.OrdinalIgnoreCase);
+
+                var newUsers = await Task.Run(() => LoadDomainUsersFromAD());
+
+                // Merge with existing allowed status
+                foreach (var user in newUsers)
                 {
-                    _allowedUsers.Add(input);
-                    _hasChanges = true;
+                    if (allowedUsernames.Contains(user.Username))
+                    {
+                        user.IsAllowed = true;
+                    }
+                    user.PropertyChanged += DomainUser_PropertyChanged;
                 }
+
+                _allDomainUsers = newUsers;
+                ApplyUserFilter();
+                UpdateUserCount();
+
+                LogService.Info($"Loaded {newUsers.Count} domain users");
+                MessageBox.Show($"Loaded {newUsers.Count} domain users.",
+                    "Domain Users Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                LogService.Error("Failed to load domain users", ex);
+                MessageBox.Show($"Failed to load domain users: {ex.Message}\n\nYou can manually add users instead.",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            finally
+            {
+                IsEnabled = true;
             }
         }
 
-        private void RemoveUser_Click(object sender, RoutedEventArgs e)
+        private List<DomainUserViewModel> LoadDomainUsersFromAD()
         {
-            var selected = UsersListBox.SelectedItem as string;
-            if (selected == null)
+            var users = new List<DomainUserViewModel>();
+
+            try
             {
-                MessageBox.Show("Please select a user to remove.",
-                    "No Selection", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
+                // Try to get domain context
+                using (var context = new PrincipalContext(ContextType.Domain))
+                {
+                    using (var searcher = new PrincipalSearcher(new UserPrincipal(context)))
+                    {
+                        foreach (var result in searcher.FindAll())
+                        {
+                            if (result is UserPrincipal userPrincipal)
+                            {
+                                // Skip disabled accounts
+                                if (userPrincipal.Enabled == false)
+                                    continue;
+
+                                // Skip system accounts
+                                if (userPrincipal.SamAccountName.EndsWith("$"))
+                                    continue;
+
+                                users.Add(new DomainUserViewModel
+                                {
+                                    Username = $"{context.Name}\\{userPrincipal.SamAccountName}",
+                                    DisplayName = userPrincipal.DisplayName ?? userPrincipal.Name ?? userPrincipal.SamAccountName,
+                                    IsAllowed = false
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (PrincipalServerDownException)
+            {
+                // Machine is not domain-joined or domain controller unavailable
+                // Fall back to local machine users
+                LogService.Warning("Domain not available, loading local machine users");
+                users = LoadLocalMachineUsers();
+            }
+            catch (Exception ex)
+            {
+                LogService.Warning($"Domain enumeration failed: {ex.Message}, trying local users");
+                users = LoadLocalMachineUsers();
             }
 
-            _allowedUsers.Remove(selected);
-            _hasChanges = true;
+            return users.OrderBy(u => u.DisplayName).ToList();
+        }
+
+        private List<DomainUserViewModel> LoadLocalMachineUsers()
+        {
+            var users = new List<DomainUserViewModel>();
+
+            try
+            {
+                using (var context = new PrincipalContext(ContextType.Machine))
+                {
+                    using (var searcher = new PrincipalSearcher(new UserPrincipal(context)))
+                    {
+                        foreach (var result in searcher.FindAll())
+                        {
+                            if (result is UserPrincipal userPrincipal)
+                            {
+                                // Skip disabled accounts
+                                if (userPrincipal.Enabled == false)
+                                    continue;
+
+                                users.Add(new DomainUserViewModel
+                                {
+                                    Username = $"{Environment.MachineName}\\{userPrincipal.SamAccountName}",
+                                    DisplayName = userPrincipal.DisplayName ?? userPrincipal.Name ?? userPrincipal.SamAccountName,
+                                    IsAllowed = false
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogService.Error("Failed to load local machine users", ex);
+            }
+
+            return users;
+        }
+
+        private void UserSearchTextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            ApplyUserFilter();
+        }
+
+        private void ApplyUserFilter()
+        {
+            var searchText = UserSearchTextBox?.Text?.Trim() ?? "";
+
+            _domainUsers.Clear();
+
+            var filtered = string.IsNullOrEmpty(searchText)
+                ? _allDomainUsers
+                : _allDomainUsers.Where(u =>
+                    u.Username.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    u.DisplayName.Contains(searchText, StringComparison.OrdinalIgnoreCase));
+
+            foreach (var user in filtered)
+            {
+                _domainUsers.Add(user);
+            }
+        }
+
+        private void DomainUser_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(DomainUserViewModel.IsAllowed))
+            {
+                _hasChanges = true;
+                UpdateUserCount();
+            }
+        }
+
+        private void UpdateUserCount()
+        {
+            var allowedCount = _allDomainUsers?.Count(u => u.IsAllowed) ?? 0;
+            UserCountLabel.Text = $"{allowedCount} users allowed";
+        }
+
+        private void AddUser_Click(object sender, RoutedEventArgs e)
+        {
+            var input = InputDialog.Show(
+                "Enter username (DOMAIN\\user or MACHINE\\user):",
+                "Add User",
+                "",
+                this);
+
+            if (!string.IsNullOrWhiteSpace(input))
+            {
+                // Normalize the username format
+                var normalizedUsername = NormalizeUsername(input.Trim());
+
+                var existing = _allDomainUsers.FirstOrDefault(u =>
+                    string.Equals(u.Username, normalizedUsername, StringComparison.OrdinalIgnoreCase));
+
+                if (existing != null)
+                {
+                    existing.IsAllowed = true;
+                }
+                else
+                {
+                    var newUser = new DomainUserViewModel
+                    {
+                        Username = normalizedUsername,
+                        DisplayName = normalizedUsername,
+                        IsAllowed = true
+                    };
+                    newUser.PropertyChanged += DomainUser_PropertyChanged;
+                    _allDomainUsers.Add(newUser);
+                    ApplyUserFilter();
+                }
+                _hasChanges = true;
+                UpdateUserCount();
+            }
+        }
+
+        /// <summary>
+        /// Normalize username to ensure it has a domain/machine prefix
+        /// </summary>
+        private string NormalizeUsername(string username)
+        {
+            if (string.IsNullOrWhiteSpace(username))
+                return username;
+
+            // If username starts with \ but no domain, add the current domain or machine name
+            if (username.StartsWith("\\") && !username.StartsWith("\\\\"))
+            {
+                // Get domain name or machine name
+                var domain = Environment.UserDomainName;
+                if (string.IsNullOrEmpty(domain))
+                    domain = Environment.MachineName;
+
+                return domain + username; // e.g., "PRASARBHARATI" + "\Administrator"
+            }
+
+            // If username doesn't contain \, add domain prefix
+            if (!username.Contains("\\"))
+            {
+                var domain = Environment.UserDomainName;
+                if (string.IsNullOrEmpty(domain))
+                    domain = Environment.MachineName;
+
+                return domain + "\\" + username; // e.g., "PRASARBHARATI\Administrator"
+            }
+
+            return username;
         }
 
         private void AddCurrentUser_Click(object sender, RoutedEventArgs e)
         {
             var currentUser = WindowsIdentity.GetCurrent().Name;
-            if (!_allowedUsers.Contains(currentUser, StringComparer.OrdinalIgnoreCase))
+            var existing = _allDomainUsers.FirstOrDefault(u =>
+                string.Equals(u.Username, currentUser, StringComparison.OrdinalIgnoreCase));
+
+            if (existing != null)
             {
-                _allowedUsers.Add(currentUser);
+                if (!existing.IsAllowed)
+                {
+                    existing.IsAllowed = true;
+                    _hasChanges = true;
+                }
+            }
+            else
+            {
+                var newUser = new DomainUserViewModel
+                {
+                    Username = currentUser,
+                    DisplayName = currentUser,
+                    IsAllowed = true
+                };
+                newUser.PropertyChanged += DomainUser_PropertyChanged;
+                _allDomainUsers.Add(newUser);
+                ApplyUserFilter();
                 _hasChanges = true;
             }
+            UpdateUserCount();
         }
 
         #endregion
@@ -490,8 +753,13 @@ namespace AirStudio.CommercialManager.Windows
                 // Update channel locations
                 config.ChannelLocations = _channelLocations.Select(c => c.ToModel()).ToList();
 
-                // Update allowed users
-                config.AllowedUsers = _allowedUsers.ToList();
+                // Update allowed users - save only users with IsAllowed = true
+                // Normalize all usernames to ensure proper domain\user format
+                config.AllowedUsers = _allDomainUsers
+                    .Where(u => u.IsAllowed)
+                    .Select(u => NormalizeUsername(u.Username))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
 
                 // Update sequence base NN
                 if (int.TryParse(SequenceBaseNNTextBox.Text, out int nn))
@@ -517,6 +785,34 @@ namespace AirStudio.CommercialManager.Windows
 
     #region View Models
 
+    public class DomainUserViewModel : INotifyPropertyChanged
+    {
+        private string _username;
+        private string _displayName;
+        private bool _isAllowed;
+
+        public string Username
+        {
+            get => _username;
+            set { _username = value; OnPropertyChanged(nameof(Username)); }
+        }
+
+        public string DisplayName
+        {
+            get => _displayName;
+            set { _displayName = value; OnPropertyChanged(nameof(DisplayName)); }
+        }
+
+        public bool IsAllowed
+        {
+            get => _isAllowed;
+            set { _isAllowed = value; OnPropertyChanged(nameof(IsAllowed)); }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
     public class DatabaseProfileViewModel : INotifyPropertyChanged
     {
         private string _id;
@@ -535,7 +831,8 @@ namespace AirStudio.CommercialManager.Windows
         public string Host { get => _host; set { _host = value; OnPropertyChanged(nameof(Host)); } }
         public int Port { get => _port; set { _port = value; OnPropertyChanged(nameof(Port)); } }
         public string Username { get => _username; set { _username = value; OnPropertyChanged(nameof(Username)); } }
-        public string Password { get => _password; set { _password = value; OnPropertyChanged(nameof(Password)); } }
+        public string Password { get => _password; set { _password = value; OnPropertyChanged(nameof(Password)); OnPropertyChanged(nameof(PasswordDisplay)); } }
+        public string PasswordDisplay => string.IsNullOrEmpty(_password) ? "" : "********";
         public string SslMode { get => _sslMode; set { _sslMode = value; OnPropertyChanged(nameof(SslMode)); } }
         public int TimeoutSeconds { get => _timeoutSeconds; set { _timeoutSeconds = value; OnPropertyChanged(nameof(TimeoutSeconds)); } }
         public bool IsDefault { get => _isDefault; set { _isDefault = value; OnPropertyChanged(nameof(IsDefault)); } }
@@ -629,6 +926,38 @@ namespace AirStudio.CommercialManager.Windows
 
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
+    #endregion
+
+    #region Converters
+
+    public class BoolToYesNoConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return value is bool b && b ? "Yes" : "No";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class BoolToColorConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return value is bool b && b
+                ? new SolidColorBrush(Color.FromRgb(76, 175, 80))  // Green for configured
+                : new SolidColorBrush(Color.FromRgb(158, 158, 158)); // Gray for not configured
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     #endregion

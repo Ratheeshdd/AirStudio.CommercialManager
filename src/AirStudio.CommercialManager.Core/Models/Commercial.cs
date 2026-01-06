@@ -8,6 +8,11 @@ namespace AirStudio.CommercialManager.Core.Models
     public class Commercial
     {
         /// <summary>
+        /// Primary key (auto-increment)
+        /// </summary>
+        public int Id { get; set; }
+
+        /// <summary>
         /// Agency code (foreign key to agency table)
         /// </summary>
         public int Code { get; set; }
@@ -53,6 +58,21 @@ namespace AirStudio.CommercialManager.Core.Models
         public DateTime LastUpdate { get; set; }
 
         /// <summary>
+        /// Date when the commercial was added
+        /// </summary>
+        public DateTime DateIn { get; set; }
+
+        /// <summary>
+        /// Status of the commercial (Active, Deleted, Purged)
+        /// </summary>
+        public string Status { get; set; } = "Active";
+
+        /// <summary>
+        /// Date when the commercial was deleted (soft delete)
+        /// </summary>
+        public DateTime? DeletedDate { get; set; }
+
+        /// <summary>
         /// Duration as TimeSpan (parsed from Duration string)
         /// </summary>
         public TimeSpan DurationTimeSpan
@@ -89,12 +109,23 @@ namespace AirStudio.CommercialManager.Core.Models
         public string ExpectedFilename => $"{SanitizedSpotName}.WAV";
 
         /// <summary>
+        /// Check if this commercial is active (not deleted)
+        /// </summary>
+        public bool IsActive => string.IsNullOrEmpty(Status) || Status == "Active";
+
+        /// <summary>
+        /// Year the commercial was added
+        /// </summary>
+        public int YearAdded => DateIn.Year > 1900 ? DateIn.Year : LastUpdate.Year;
+
+        /// <summary>
         /// Create a copy of this commercial
         /// </summary>
         public Commercial Clone()
         {
             return new Commercial
             {
+                Id = Id,
                 Code = Code,
                 Agency = Agency,
                 Spot = Spot,
@@ -103,7 +134,10 @@ namespace AirStudio.CommercialManager.Core.Models
                 Otherinfo = Otherinfo,
                 Filename = Filename,
                 User = User,
-                LastUpdate = LastUpdate
+                LastUpdate = LastUpdate,
+                DateIn = DateIn,
+                Status = Status,
+                DeletedDate = DeletedDate
             };
         }
 
