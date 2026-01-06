@@ -388,9 +388,13 @@ namespace AirStudio.CommercialManager.Windows
 
         private void ActivityLogButton_Click(object sender, RoutedEventArgs e)
         {
-            // TODO: Implement activity log
             WorkAreaTitle.Text = "ACTIVITY LOG";
-            StatusLabel.Text = "Activity log (coming soon)";
+
+            var activityLog = new Controls.ActivityLogControl();
+            WorkAreaContent.Child = activityLog;
+
+            StatusLabel.Text = "Viewing activity log";
+            LogService.Info("Activity log panel opened");
         }
 
         #endregion
