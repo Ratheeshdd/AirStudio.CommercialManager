@@ -7,6 +7,7 @@ using System.Security.Principal;
 using System.Windows;
 using Microsoft.Win32;
 using AirStudio.CommercialManager.Core.Models;
+using AirStudio.CommercialManager.Core.Services.Channels;
 using AirStudio.CommercialManager.Core.Services.Configuration;
 using AirStudio.CommercialManager.Core.Services.Logging;
 
@@ -298,11 +299,57 @@ namespace AirStudio.CommercialManager.Windows
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        private void RefreshChannels_Click(object sender, RoutedEventArgs e)
+        private async void RefreshChannels_Click(object sender, RoutedEventArgs e)
         {
-            // TODO: Refresh channels from database
-            MessageBox.Show("Channel refresh will be implemented with the channel loader.",
-                "Not Implemented", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                IsEnabled = false;
+                var channels = await ChannelService.Instance.GetChannelsAsync(forceRefresh: true);
+
+                // Create view models for all channels (merge with existing config)
+                var newLocations = new List<ChannelLocationViewModel>();
+                foreach (var channel in channels)
+                {
+                    // Find existing location or create new
+                    var existing = _channelLocations.FirstOrDefault(c =>
+                        string.Equals(c.Channel, channel.Name, StringComparison.OrdinalIgnoreCase));
+
+                    if (existing != null)
+                    {
+                        newLocations.Add(existing);
+                    }
+                    else
+                    {
+                        newLocations.Add(new ChannelLocationViewModel(new ChannelLocation
+                        {
+                            Channel = channel.Name,
+                            XRootTargets = channel.XRootTargets ?? new List<string>()
+                        }));
+                    }
+                }
+
+                _channelLocations.Clear();
+                foreach (var loc in newLocations.OrderBy(c => c.Channel))
+                {
+                    _channelLocations.Add(loc);
+                }
+
+                LocationsGrid.Items.Refresh();
+                _hasChanges = true;
+
+                MessageBox.Show($"Refreshed {channels.Count} channels from database.",
+                    "Channels Refreshed", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                LogService.Error("Failed to refresh channels", ex);
+                MessageBox.Show($"Failed to refresh channels: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsEnabled = true;
+            }
         }
 
         #endregion
