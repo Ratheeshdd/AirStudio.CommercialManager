@@ -190,13 +190,20 @@ namespace AirStudio.CommercialManager.Controls
                     return;
                 }
 
+                // Stop any current playback before loading
+                _audioPlayer.Stop();
+
                 // Reset segment tracking
                 _currentSegmentIndex = 0;
                 _accumulatedTime = TimeSpan.Zero;
 
-                // Load first segment for playback
+                // Load first segment for playback (don't auto-play)
                 var firstSegment = _capsuleData.Segments[0];
-                _audioPlayer.Load(firstSegment.FilePath);
+                if (!_audioPlayer.Load(firstSegment.FilePath))
+                {
+                    ShowError("Failed to load first segment");
+                    return;
+                }
 
                 // Update UI
                 LoadingOverlay.Visibility = Visibility.Collapsed;

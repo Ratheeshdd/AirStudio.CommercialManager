@@ -374,6 +374,10 @@ namespace AirStudio.CommercialManager.Windows
 
                 // Load capsule waveform for the schedule
                 LoadWaveformForSchedule(schedule);
+
+                // Enable preview button if audio was loaded
+                PreviewButton.IsEnabled = WaveformViewer.HasAudio;
+                StopButton.IsEnabled = false;
             }
         }
 
@@ -527,6 +531,10 @@ namespace AirStudio.CommercialManager.Windows
 
                 // Load waveform for selected commercial
                 LoadWaveformForCommercial(commercial);
+
+                // Enable preview button if audio was loaded
+                PreviewButton.IsEnabled = WaveformViewer.HasAudio;
+                StopButton.IsEnabled = false;
             }
         }
 
@@ -721,6 +729,10 @@ namespace AirStudio.CommercialManager.Windows
 
                 // Load waveform for selected item
                 LoadWaveformForCommercial(item.Commercial);
+
+                // Enable preview button if audio was loaded
+                PreviewButton.IsEnabled = WaveformViewer.HasAudio;
+                StopButton.IsEnabled = false;
             }
         }
 
