@@ -27,7 +27,9 @@
       "Bash(cmd /c \"dir /s /b C:\\\\ProgramData\\\\AirStudio\\\\CommercialManager\")",
       "Bash(start \"\" \"F:\\\\RKV\\\\AirStudio.CommercialManager\\\\src\\\\AirStudio.CommercialManager\\\\bin\\\\Release\\\\net8.0-windows\\\\AirStudio.CommercialManager.exe\")",
       "Bash(start \"\" \"F:\\\\RKV\\\\AirStudio.CommercialManager\\\\src\\\\AirStudio.CommercialManager\\\\bin\\\\Release\\\\net8.0-windows\\\\win-x64\\\\AirStudio.CommercialManager.exe\")",
-      "Bash(cmd /c \"dir /s /b C:\\\\ProgramData\\\\AirStudio\\\\CommercialManager\\\\Logs\\\\*.log 2>&1\")"
+      "Bash(cmd /c \"dir /s /b C:\\\\ProgramData\\\\AirStudio\\\\CommercialManager\\\\Logs\\\\*.log 2>&1\")",
+      "Bash(git push:*)",
+      "Bash(cmd /c \"type %LOCALAPPDATA%\\\\AirStudio\\\\CommercialManager\\\\logs\\\\*.log | findstr /I /C:\"\"segment\"\" /C:\"\"multi\"\" /C:\"\"playback\"\" | tail -20\")"
     ]
   }
 }

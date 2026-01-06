@@ -23,6 +23,8 @@ namespace AirStudio.CommercialManager.Controls
         private WaveformData _waveformData;
         private CapsuleWaveformData _capsuleData;
         private bool _disposed;
+        private int _currentSegmentIndex = 0;
+        private TimeSpan _accumulatedTime = TimeSpan.Zero; // Time of previous segments
 
         // Theme colors for waveform
         private static readonly Color[] SegmentColors = new[]
@@ -187,6 +189,10 @@ namespace AirStudio.CommercialManager.Controls
                     ShowError("Failed to generate capsule waveform");
                     return;
                 }
+
+                // Reset segment tracking
+                _currentSegmentIndex = 0;
+                _accumulatedTime = TimeSpan.Zero;
 
                 // Load first segment for playback
                 var firstSegment = _capsuleData.Segments[0];
@@ -516,7 +522,30 @@ namespace AirStudio.CommercialManager.Controls
         {
             Dispatcher.Invoke(() =>
             {
+                // For capsule playback, move to next segment
+                if (_capsuleData != null && _currentSegmentIndex < _capsuleData.Segments.Count - 1)
+                {
+                    // Accumulate time from completed segment
+                    var completedSegment = _capsuleData.Segments[_currentSegmentIndex];
+                    _accumulatedTime += completedSegment.Duration;
+
+                    // Move to next segment
+                    _currentSegmentIndex++;
+                    var nextSegment = _capsuleData.Segments[_currentSegmentIndex];
+
+                    // Load and play next segment
+                    if (_audioPlayer.Load(nextSegment.FilePath))
+                    {
+                        SegmentLabel.Text = $"Segment: {nextSegment.Name}";
+                        _audioPlayer.Play();
+                        return; // Continue playback
+                    }
+                }
+
+                // All segments complete or single audio file
                 CurrentTimeLabel.Text = "00:00:00";
+                _currentSegmentIndex = 0;
+                _accumulatedTime = TimeSpan.Zero;
                 UpdatePlayheadPosition();
 
                 // Notify MainWindow
@@ -531,13 +560,15 @@ namespace AirStudio.CommercialManager.Controls
 
         private void PositionTimer_Tick(object sender, EventArgs e)
         {
-            CurrentTimeLabel.Text = FormatTime(_audioPlayer.Position);
+            // For capsule playback, add accumulated time from previous segments
+            var totalPosition = _audioPlayer.Position + _accumulatedTime;
+            CurrentTimeLabel.Text = FormatTime(totalPosition);
             UpdatePlayheadPosition();
 
             // Update segment info for capsule
             if (_capsuleData != null)
             {
-                var segment = _capsuleData.GetSegmentAtTime(_audioPlayer.Position);
+                var segment = _capsuleData.GetSegmentAtTime(totalPosition);
                 if (segment != null)
                 {
                     SegmentLabel.Text = $"Segment: {segment.Name}";
@@ -545,7 +576,7 @@ namespace AirStudio.CommercialManager.Controls
             }
 
             // Notify MainWindow about position change
-            PositionChanged?.Invoke(this, _audioPlayer.Position);
+            PositionChanged?.Invoke(this, totalPosition);
         }
 
         /// <summary>

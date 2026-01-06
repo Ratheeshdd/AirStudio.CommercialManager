@@ -369,6 +369,9 @@ namespace AirStudio.CommercialManager.Windows
         {
             if (ScheduledGrid.SelectedItem is ScheduledCommercial schedule)
             {
+                // Stop current playback and reset cursor
+                WaveformViewer.Stop();
+
                 // Load capsule waveform for the schedule
                 LoadWaveformForSchedule(schedule);
             }
@@ -519,6 +522,10 @@ namespace AirStudio.CommercialManager.Windows
         {
             if (LibraryGrid.SelectedItem is Commercial commercial)
             {
+                // Stop current playback and reset cursor
+                WaveformViewer.Stop();
+
+                // Load waveform for selected commercial
                 LoadWaveformForCommercial(commercial);
             }
         }
@@ -705,6 +712,16 @@ namespace AirStudio.CommercialManager.Windows
             MoveUpButton.IsEnabled = hasSelection && selectedIndex > 0;
             MoveDownButton.IsEnabled = hasSelection && selectedIndex < _playlistItems.Count - 1;
             RemoveItemButton.IsEnabled = hasSelection;
+
+            // Update waveform when playlist item is selected
+            if (hasSelection && PlaylistGrid.SelectedItem is PlaylistItem item && item.Commercial != null)
+            {
+                // Stop current playback and reset cursor
+                WaveformViewer.Stop();
+
+                // Load waveform for selected item
+                LoadWaveformForCommercial(item.Commercial);
+            }
         }
 
         private void MoveUpButton_Click(object sender, RoutedEventArgs e)
