@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -9,13 +10,14 @@ using System.Windows.Threading;
 using AirStudio.CommercialManager.Core.Models;
 using AirStudio.CommercialManager.Core.Services.Library;
 using AirStudio.CommercialManager.Core.Services.Logging;
+using AirStudio.CommercialManager.Interfaces;
 
 namespace AirStudio.CommercialManager.Controls
 {
     /// <summary>
     /// Capsule builder control for assembling commercials into capsules
     /// </summary>
-    public partial class CapsuleBuilderControl : UserControl
+    public partial class CapsuleBuilderControl : UserControl, IUnsavedChangesTracker
     {
         private Channel _channel;
         private CommercialService _commercialService;
@@ -23,6 +25,7 @@ namespace AirStudio.CommercialManager.Controls
         private List<Commercial> _libraryCommercials = new List<Commercial>();
         private Point _dragStartPoint;
         private bool _isDragging;
+        private bool _isDirty;
         private readonly DispatcherTimer _searchDebounce;
 
         /// <summary>
@@ -34,6 +37,59 @@ namespace AirStudio.CommercialManager.Controls
         /// Event raised when capsule changes
         /// </summary>
         public event EventHandler<Capsule> CapsuleChanged;
+
+        #region IUnsavedChangesTracker Implementation
+
+        /// <summary>
+        /// Gets whether the capsule has unsaved changes (segments added but not scheduled)
+        /// </summary>
+        public bool HasUnsavedChanges => _isDirty && _capsule.HasSegments;
+
+        /// <summary>
+        /// Gets a description of the unsaved changes
+        /// </summary>
+        public string UnsavedChangesDescription =>
+            _capsule.HasSegments
+                ? $"Capsule '{_capsule.Name ?? "Unnamed"}' with {_capsule.SegmentCount} segment(s)"
+                : "Capsule builder";
+
+        /// <summary>
+        /// Save changes - for capsule builder, this means schedule the capsule
+        /// </summary>
+        public Task<bool> SaveChangesAsync()
+        {
+            // Capsule builder doesn't save directly; it schedules
+            // This will trigger the CapsuleReady event if valid
+            if (TryGetCapsule(out var capsule))
+            {
+                CapsuleReady?.Invoke(this, capsule);
+                return Task.FromResult(true);
+            }
+            return Task.FromResult(false);
+        }
+
+        /// <summary>
+        /// Discard unsaved changes
+        /// </summary>
+        public void DiscardChanges()
+        {
+            _capsule.Clear();
+            CapsuleNameTextBox.Text = "";
+            _isDirty = false;
+            UpdateUI();
+            CapsuleWaveformViewer.Clear();
+            LogService.Info("Discarded capsule changes");
+        }
+
+        /// <summary>
+        /// Mark the capsule as clean (no unsaved changes)
+        /// </summary>
+        public void MarkClean()
+        {
+            _isDirty = false;
+        }
+
+        #endregion
 
         public CapsuleBuilderControl()
         {
@@ -65,6 +121,7 @@ namespace AirStudio.CommercialManager.Controls
             _channel = channel ?? throw new ArgumentNullException(nameof(channel));
             _commercialService = new CommercialService(channel);
             _capsule = new Capsule();
+            _isDirty = false;
 
             await LoadLibraryAsync();
             UpdateUI();
@@ -78,6 +135,7 @@ namespace AirStudio.CommercialManager.Controls
             _channel = channel ?? throw new ArgumentNullException(nameof(channel));
             _commercialService = new CommercialService(channel);
             _capsule = existingCapsule ?? new Capsule();
+            _isDirty = false;
 
             CapsuleNameTextBox.Text = _capsule.Name ?? "";
 
@@ -163,6 +221,7 @@ namespace AirStudio.CommercialManager.Controls
 
             var audioPath = GetAudioPath(commercial);
             _capsule.AddCommercial(commercial.Clone(), audioPath);
+            _isDirty = true;
 
             // Auto-set capsule name if first segment
             if (_capsule.SegmentCount == 1 && string.IsNullOrWhiteSpace(CapsuleNameTextBox.Text))
@@ -302,6 +361,7 @@ namespace AirStudio.CommercialManager.Controls
                     var targetIndex = GetDropIndex(e);
                     var audioPath = GetAudioPath(commercial);
                     _capsule.InsertCommercial(targetIndex, commercial.Clone(), audioPath);
+                    _isDirty = true;
                     UpdateUI();
                     UpdateWaveformPreview();
                 }
@@ -317,6 +377,7 @@ namespace AirStudio.CommercialManager.Controls
                     if (fromIndex != toIndex)
                     {
                         _capsule.MoveSegment(fromIndex, toIndex);
+                        _isDirty = true;
                         UpdateUI();
                         UpdateWaveformPreview();
                     }
@@ -377,6 +438,7 @@ namespace AirStudio.CommercialManager.Controls
                 if (index >= 0)
                 {
                     _capsule.RemoveAt(index);
+                    _isDirty = true;
                     UpdateUI();
                     UpdateWaveformPreview();
                     LogService.Info($"Removed segment '{segment.DisplayName}' from capsule");
@@ -390,6 +452,7 @@ namespace AirStudio.CommercialManager.Controls
             if (index > 0)
             {
                 _capsule.MoveSegment(index, index - 1);
+                _isDirty = true;
                 UpdateUI();
                 SegmentsListBox.SelectedIndex = index - 1;
                 UpdateWaveformPreview();
@@ -402,6 +465,7 @@ namespace AirStudio.CommercialManager.Controls
             if (index >= 0 && index < _capsule.SegmentCount - 1)
             {
                 _capsule.MoveSegment(index, index + 1);
+                _isDirty = true;
                 UpdateUI();
                 SegmentsListBox.SelectedIndex = index + 1;
                 UpdateWaveformPreview();
@@ -415,6 +479,7 @@ namespace AirStudio.CommercialManager.Controls
         private void CapsuleNameTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             _capsule.Name = CapsuleNameTextBox.Text?.Trim();
+            _isDirty = true;
         }
 
         private void ClearButton_Click(object sender, RoutedEventArgs e)
@@ -431,6 +496,7 @@ namespace AirStudio.CommercialManager.Controls
                 {
                     _capsule.Clear();
                     CapsuleNameTextBox.Text = "";
+                    _isDirty = false;
                     UpdateUI();
                     CapsuleWaveformViewer.Clear();
                     LogService.Info("Cleared capsule");

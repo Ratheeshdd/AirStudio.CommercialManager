@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using AirStudio.CommercialManager.Core.Models;
 using AirStudio.CommercialManager.Core.Services.Logging;
 using AirStudio.CommercialManager.Core.Services.Tags;
+using AirStudio.CommercialManager.Interfaces;
 using AirStudio.CommercialManager.Windows;
 using Microsoft.Win32;
 
@@ -15,7 +17,7 @@ namespace AirStudio.CommercialManager.Controls
     /// <summary>
     /// Control for importing and editing TAG files
     /// </summary>
-    public partial class TagEditorControl : UserControl
+    public partial class TagEditorControl : UserControl, IUnsavedChangesTracker
     {
         private Channel _channel;
         private TagService _tagService;
@@ -28,6 +30,88 @@ namespace AirStudio.CommercialManager.Controls
         {
             InitializeComponent();
         }
+
+        #region IUnsavedChangesTracker Implementation
+
+        /// <summary>
+        /// Gets whether there are unsaved changes to the TAG file
+        /// </summary>
+        public bool HasUnsavedChanges => _hasChanges;
+
+        /// <summary>
+        /// Gets a description of the unsaved changes
+        /// </summary>
+        public string UnsavedChangesDescription =>
+            _tagFile != null
+                ? $"TAG file '{_tagFile.FileName}'"
+                : "TAG editor";
+
+        /// <summary>
+        /// Save the current TAG file changes
+        /// </summary>
+        public async Task<bool> SaveChangesAsync()
+        {
+            if (_tagFile == null || !_hasChanges)
+                return true;
+
+            try
+            {
+                var willRename = WillFilenameChange();
+                var oldPath = _tagFile.FilePath;
+
+                TagSaveResult saveResult;
+
+                if (willRename && !string.IsNullOrEmpty(oldPath))
+                {
+                    saveResult = await _tagService.RenameTagFileAsync(oldPath, _tagFile);
+
+                    if (saveResult.AnySucceeded)
+                    {
+                        await _tagService.UpdatePlaylistPathAsync(oldPath, _tagFile, "", "");
+                    }
+                }
+                else
+                {
+                    saveResult = await _tagService.SaveTagFileAsync(_tagFile);
+                }
+
+                if (saveResult.AnySucceeded)
+                {
+                    _hasChanges = false;
+                    _originalTagFile = _tagService.LoadTagFile(saveResult.PrimaryPath);
+                    UpdateButtonStates();
+                    LogService.Info($"TAG file saved: {_tagFile.FileName}");
+                    return true;
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                LogService.Error("Failed to save TAG file", ex);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Discard unsaved changes
+        /// </summary>
+        public void DiscardChanges()
+        {
+            if (_originalTagFile != null && !string.IsNullOrEmpty(_originalTagFile.FilePath))
+            {
+                // Reload from original
+                LoadTagFile(_originalTagFile.FilePath);
+            }
+            else
+            {
+                ClearEditor();
+            }
+            _hasChanges = false;
+            LogService.Info("Discarded TAG editor changes");
+        }
+
+        #endregion
 
         /// <summary>
         /// Initialize with a channel
@@ -211,23 +295,36 @@ namespace AirStudio.CommercialManager.Controls
 
         #region Event Handlers
 
-        private void TagFileComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void TagFileComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (TagFileComboBox.SelectedItem is ComboBoxItem item && item.Tag is string filePath)
             {
                 if (_hasChanges)
                 {
                     var result = MessageBox.Show(
-                        "You have unsaved changes. Discard them?",
+                        $"You have unsaved changes to '{_tagFile?.FileName ?? "the TAG file"}'.\n\n" +
+                        "Do you want to save before switching?",
                         "Unsaved Changes",
-                        MessageBoxButton.YesNo,
+                        MessageBoxButton.YesNoCancel,
                         MessageBoxImage.Warning);
 
-                    if (result != MessageBoxResult.Yes)
+                    if (result == MessageBoxResult.Cancel)
                     {
+                        // Revert selection
                         e.Handled = true;
                         return;
                     }
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        var saved = await SaveChangesAsync();
+                        if (!saved)
+                        {
+                            e.Handled = true;
+                            return;
+                        }
+                    }
+                    // If No, just discard and continue
                 }
 
                 LoadTagFile(filePath);

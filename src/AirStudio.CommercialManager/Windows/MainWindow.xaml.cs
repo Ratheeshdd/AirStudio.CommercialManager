@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Security.Principal;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -8,6 +10,7 @@ using AirStudio.CommercialManager.Core.Models;
 using AirStudio.CommercialManager.Core.Services.Channels;
 using AirStudio.CommercialManager.Core.Services.Configuration;
 using AirStudio.CommercialManager.Core.Services.Logging;
+using AirStudio.CommercialManager.Interfaces;
 
 namespace AirStudio.CommercialManager.Windows
 {
@@ -19,11 +22,13 @@ namespace AirStudio.CommercialManager.Windows
         private AppConfiguration _config;
         private List<Channel> _channels = new List<Channel>();
         private Channel _selectedChannel;
+        private object _previousChannelSelection;
 
         public MainWindow()
         {
             InitializeComponent();
             Loaded += MainWindow_Loaded;
+            Closing += MainWindow_Closing;
             ChannelComboBox.SelectionChanged += ChannelComboBox_SelectionChanged;
         }
 
@@ -96,9 +101,26 @@ namespace AirStudio.CommercialManager.Windows
             }
         }
 
-        private void ChannelComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void ChannelComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             var selectedItem = ChannelComboBox.SelectedItem as ComboBoxItem;
+
+            // Check for unsaved changes before switching channels
+            if (_previousChannelSelection != null && _previousChannelSelection != selectedItem)
+            {
+                var canProceed = await CheckAndHandleUnsavedChangesAsync("switch channels");
+                if (!canProceed)
+                {
+                    // Revert to previous selection
+                    ChannelComboBox.SelectionChanged -= ChannelComboBox_SelectionChanged;
+                    ChannelComboBox.SelectedItem = _previousChannelSelection;
+                    ChannelComboBox.SelectionChanged += ChannelComboBox_SelectionChanged;
+                    return;
+                }
+            }
+
+            _previousChannelSelection = selectedItem;
+
             if (selectedItem?.Tag is Channel channel)
             {
                 _selectedChannel = channel;
@@ -110,6 +132,122 @@ namespace AirStudio.CommercialManager.Windows
                 DisableAllActions();
             }
         }
+
+        #region Unsaved Changes Protection
+
+        /// <summary>
+        /// Gets the current active control that tracks unsaved changes, if any
+        /// </summary>
+        private IUnsavedChangesTracker GetCurrentUnsavedChangesTracker()
+        {
+            return WorkAreaContent.Child as IUnsavedChangesTracker;
+        }
+
+        /// <summary>
+        /// Checks if there are unsaved changes and prompts user to Save/Discard/Cancel
+        /// </summary>
+        /// <param name="actionDescription">Description of what the user is trying to do (e.g., "switch channels", "close the application")</param>
+        /// <returns>True if the action can proceed, false if cancelled</returns>
+        private async Task<bool> CheckAndHandleUnsavedChangesAsync(string actionDescription)
+        {
+            var tracker = GetCurrentUnsavedChangesTracker();
+            if (tracker == null || !tracker.HasUnsavedChanges)
+            {
+                return true; // No unsaved changes, proceed
+            }
+
+            var result = MessageBox.Show(
+                $"You have unsaved changes in {tracker.UnsavedChangesDescription}.\n\n" +
+                $"Do you want to save before you {actionDescription}?",
+                "Unsaved Changes",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Warning);
+
+            switch (result)
+            {
+                case MessageBoxResult.Yes:
+                    // Try to save
+                    var saved = await tracker.SaveChangesAsync();
+                    if (!saved)
+                    {
+                        // Save failed or was cancelled, don't proceed
+                        MessageBox.Show(
+                            "Changes could not be saved. The operation has been cancelled.",
+                            "Save Failed",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning);
+                        return false;
+                    }
+                    return true;
+
+                case MessageBoxResult.No:
+                    // Discard changes and proceed
+                    tracker.DiscardChanges();
+                    return true;
+
+                case MessageBoxResult.Cancel:
+                default:
+                    // Don't proceed
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Synchronous version for use in Closing event
+        /// </summary>
+        private bool CheckAndHandleUnsavedChanges(string actionDescription)
+        {
+            var tracker = GetCurrentUnsavedChangesTracker();
+            if (tracker == null || !tracker.HasUnsavedChanges)
+            {
+                return true;
+            }
+
+            var result = MessageBox.Show(
+                $"You have unsaved changes in {tracker.UnsavedChangesDescription}.\n\n" +
+                $"Do you want to save before you {actionDescription}?",
+                "Unsaved Changes",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Warning);
+
+            switch (result)
+            {
+                case MessageBoxResult.Yes:
+                    // Try to save synchronously
+                    var saveTask = tracker.SaveChangesAsync();
+                    saveTask.Wait();
+                    if (!saveTask.Result)
+                    {
+                        MessageBox.Show(
+                            "Changes could not be saved. The operation has been cancelled.",
+                            "Save Failed",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning);
+                        return false;
+                    }
+                    return true;
+
+                case MessageBoxResult.No:
+                    tracker.DiscardChanges();
+                    return true;
+
+                case MessageBoxResult.Cancel:
+                default:
+                    return false;
+            }
+        }
+
+        private void MainWindow_Closing(object sender, CancelEventArgs e)
+        {
+            var canClose = CheckAndHandleUnsavedChanges("close the application");
+            if (!canClose)
+            {
+                e.Cancel = true;
+                LogService.Info("Window close cancelled due to unsaved changes");
+            }
+        }
+
+        #endregion
 
         private void OnChannelSelected(Channel channel)
         {
@@ -194,7 +332,7 @@ namespace AirStudio.CommercialManager.Windows
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            // TODO: Check for unsaved changes before closing
+            // The Closing event handler will check for unsaved changes
             Close();
         }
 
@@ -218,7 +356,7 @@ namespace AirStudio.CommercialManager.Windows
 
         #region Action Button Handlers
 
-        private void AgencyButton_Click(object sender, RoutedEventArgs e)
+        private async void AgencyButton_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedChannel == null)
             {
@@ -226,6 +364,9 @@ namespace AirStudio.CommercialManager.Windows
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
+
+            if (!await CheckAndHandleUnsavedChangesAsync("navigate to Agency Management"))
+                return;
 
             ShowAgencyManagement();
         }
@@ -241,9 +382,12 @@ namespace AirStudio.CommercialManager.Windows
             StatusLabel.Text = $"Managing agencies for {_selectedChannel.Name}";
         }
 
-        private void LibraryButton_Click(object sender, RoutedEventArgs e)
+        private async void LibraryButton_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedChannel == null) return;
+
+            if (!await CheckAndHandleUnsavedChangesAsync("navigate to Commercial Library"))
+                return;
 
             WorkAreaTitle.Text = $"COMMERCIAL LIBRARY - {_selectedChannel.Name.ToUpperInvariant()}";
 
@@ -306,9 +450,12 @@ namespace AirStudio.CommercialManager.Windows
             WaveformViewer.Clear();
         }
 
-        private void CapsuleButton_Click(object sender, RoutedEventArgs e)
+        private async void CapsuleButton_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedChannel == null) return;
+
+            if (!await CheckAndHandleUnsavedChangesAsync("navigate to Build Capsule"))
+                return;
 
             WorkAreaTitle.Text = $"BUILD CAPSULE - {_selectedChannel.Name.ToUpperInvariant()}";
 
@@ -328,13 +475,19 @@ namespace AirStudio.CommercialManager.Windows
         {
             if (capsule == null || _selectedChannel == null) return;
 
+            // Mark the current capsule builder as clean since we're proceeding with the capsule
+            if (WorkAreaContent.Child is Controls.CapsuleBuilderControl capsuleBuilder)
+            {
+                capsuleBuilder.MarkClean();
+            }
+
             WorkAreaTitle.Text = $"SCHEDULE: {capsule.Name.ToUpperInvariant()}";
 
             var schedulingControl = new Controls.SchedulingControl();
             schedulingControl.EditCapsuleRequested += (s, c) =>
             {
-                // Go back to capsule builder
-                CapsuleButton_Click(s, new RoutedEventArgs());
+                // Go back to capsule builder (no unsaved changes check since scheduling hasn't saved yet)
+                NavigateToCapsuleBuilderForEdit(c);
             };
             schedulingControl.ScheduleCompleted += (s, schedule) =>
             {
@@ -347,9 +500,29 @@ namespace AirStudio.CommercialManager.Windows
             StatusLabel.Text = $"Scheduling capsule '{capsule.Name}' ({capsule.SegmentCount} segments)";
         }
 
-        private void ScheduleButton_Click(object sender, RoutedEventArgs e)
+        private void NavigateToCapsuleBuilderForEdit(Core.Models.Capsule capsule)
+        {
+            // When editing capsule from scheduling, we don't need unsaved changes check
+            // because the scheduling hasn't been completed yet
+            WorkAreaTitle.Text = $"BUILD CAPSULE - {_selectedChannel.Name.ToUpperInvariant()}";
+
+            var capsuleBuilder = new Controls.CapsuleBuilderControl();
+            capsuleBuilder.CapsuleReady += (s, c) =>
+            {
+                ShowSchedulingForCapsule(c);
+            };
+            capsuleBuilder.Initialize(_selectedChannel, capsule);
+
+            WorkAreaContent.Child = capsuleBuilder;
+            StatusLabel.Text = $"Editing capsule for {_selectedChannel.Name}";
+        }
+
+        private async void ScheduleButton_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedChannel == null) return;
+
+            if (!await CheckAndHandleUnsavedChangesAsync("navigate to Schedule Commercial"))
+                return;
 
             // Open capsule builder - user needs to build or select a capsule first
             WorkAreaTitle.Text = $"SCHEDULE COMMERCIAL - {_selectedChannel.Name.ToUpperInvariant()}";
@@ -365,9 +538,12 @@ namespace AirStudio.CommercialManager.Windows
             StatusLabel.Text = $"Build or select capsule to schedule for {_selectedChannel.Name}";
         }
 
-        private void ImportTagButton_Click(object sender, RoutedEventArgs e)
+        private async void ImportTagButton_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedChannel == null) return;
+
+            if (!await CheckAndHandleUnsavedChangesAsync("navigate to Import/Edit TAG"))
+                return;
 
             WorkAreaTitle.Text = $"IMPORT/EDIT TAG - {_selectedChannel.Name.ToUpperInvariant()}";
 
@@ -378,16 +554,23 @@ namespace AirStudio.CommercialManager.Windows
             StatusLabel.Text = $"Editing TAGs for {_selectedChannel.Name}";
         }
 
-        private void ViewScheduleButton_Click(object sender, RoutedEventArgs e)
+        private async void ViewScheduleButton_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedChannel == null) return;
+
+            if (!await CheckAndHandleUnsavedChangesAsync("navigate to View Schedule"))
+                return;
+
             // TODO: Implement schedule view
             WorkAreaTitle.Text = $"VIEW SCHEDULE - {_selectedChannel.Name.ToUpperInvariant()}";
             StatusLabel.Text = $"Schedule view for {_selectedChannel.Name} (coming soon)";
         }
 
-        private void ActivityLogButton_Click(object sender, RoutedEventArgs e)
+        private async void ActivityLogButton_Click(object sender, RoutedEventArgs e)
         {
+            if (!await CheckAndHandleUnsavedChangesAsync("navigate to Activity Log"))
+                return;
+
             WorkAreaTitle.Text = "ACTIVITY LOG";
 
             var activityLog = new Controls.ActivityLogControl();
