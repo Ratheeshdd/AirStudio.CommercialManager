@@ -309,9 +309,28 @@ namespace AirStudio.CommercialManager.Windows
         private void CapsuleButton_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedChannel == null) return;
-            // TODO: Implement capsule builder
+
             WorkAreaTitle.Text = $"BUILD CAPSULE - {_selectedChannel.Name.ToUpperInvariant()}";
-            StatusLabel.Text = $"Capsule builder for {_selectedChannel.Name} (coming soon)";
+
+            var capsuleBuilder = new Controls.CapsuleBuilderControl();
+            capsuleBuilder.CapsuleReady += (s, capsule) =>
+            {
+                // Navigate to scheduling with this capsule
+                ShowSchedulingForCapsule(capsule);
+            };
+            capsuleBuilder.Initialize(_selectedChannel);
+
+            WorkAreaContent.Child = capsuleBuilder;
+            StatusLabel.Text = $"Building capsule for {_selectedChannel.Name}";
+        }
+
+        private void ShowSchedulingForCapsule(Core.Models.Capsule capsule)
+        {
+            if (capsule == null) return;
+
+            WorkAreaTitle.Text = $"SCHEDULE: {capsule.Name}";
+            StatusLabel.Text = $"Scheduling capsule '{capsule.Name}' ({capsule.SegmentCount} segments)";
+            // TODO: Show scheduling control with the capsule
         }
 
         private void ScheduleButton_Click(object sender, RoutedEventArgs e)
