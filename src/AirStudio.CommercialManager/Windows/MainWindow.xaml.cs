@@ -250,7 +250,7 @@ namespace AirStudio.CommercialManager.Windows
             var libraryControl = new Controls.LibraryControl();
             libraryControl.CommercialSelected += (s, commercial) =>
             {
-                // Could update preview panel here
+                UpdatePreviewPanel(commercial);
             };
             libraryControl.ScheduleRequested += (s, commercial) =>
             {
@@ -261,6 +261,49 @@ namespace AirStudio.CommercialManager.Windows
 
             WorkAreaContent.Child = libraryControl;
             StatusLabel.Text = $"Library: {_selectedChannel.Name}";
+        }
+
+        private void UpdatePreviewPanel(Core.Models.Commercial commercial)
+        {
+            if (commercial == null)
+            {
+                ClearPreviewPanel();
+                return;
+            }
+
+            // Update properties
+            PropertySpot.Text = $"Spot: {commercial.Spot}";
+            PropertyTitle.Text = $"Title: {commercial.Title ?? "--"}";
+            PropertyAgency.Text = $"Agency: {commercial.Agency ?? "--"}";
+            PropertyDuration.Text = $"Duration: {commercial.Duration ?? "--"}";
+            PropertyFilename.Text = $"File: {commercial.Filename ?? "--"}";
+
+            // Load waveform if we have a file and channel
+            if (_selectedChannel != null && !string.IsNullOrEmpty(commercial.Filename))
+            {
+                var audioPath = System.IO.Path.Combine(
+                    _selectedChannel.PrimaryCommercialsPath ?? "",
+                    commercial.Filename);
+
+                if (System.IO.File.Exists(audioPath))
+                {
+                    WaveformViewer.LoadAudio(audioPath);
+                }
+                else
+                {
+                    WaveformViewer.Clear();
+                }
+            }
+        }
+
+        private void ClearPreviewPanel()
+        {
+            PropertySpot.Text = "Spot: --";
+            PropertyTitle.Text = "Title: --";
+            PropertyAgency.Text = "Agency: --";
+            PropertyDuration.Text = "Duration: --";
+            PropertyFilename.Text = "File: --";
+            WaveformViewer.Clear();
         }
 
         private void CapsuleButton_Click(object sender, RoutedEventArgs e)

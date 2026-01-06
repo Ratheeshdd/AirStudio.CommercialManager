@@ -161,16 +161,20 @@
 
                     <TextBlock Grid.Row="0" Text="PREVIEW" FontWeight="Bold" Foreground="#B0C4DE" Margin="0,0,0,12"/>
 
-                    <!-- Waveform viewer placeholder -->
+                    <!-- Waveform viewer -->
                     <Border Grid.Row="1" Background="#0D1B2A" CornerRadius="6" Margin="0,0,0,8">
-                        <TextBlock Style="{StaticResource EmptyHint}" Text="Select an audio file to preview waveform"/>
+                        <controls:WaveformViewer x:Name="WaveformViewer" xmlns:controls="clr-namespace:AirStudio.CommercialManager.Controls"/>
                     </Border>
 
                     <!-- Properties panel -->
-                    <Border Grid.Row="2" Style="{StaticResource CardPanel}" MinHeight="150">
-                        <StackPanel>
+                    <Border Grid.Row="2" Style="{StaticResource CardPanel}" MinHeight="120">
+                        <StackPanel x:Name="PropertiesPanel">
                             <TextBlock Text="Properties" FontWeight="SemiBold" Foreground="#E0E6ED" Margin="0,0,0,8"/>
-                            <TextBlock Text="No item selected" Foreground="#607D8B" FontStyle="Italic"/>
+                            <TextBlock x:Name="PropertySpot" Text="Spot: --" Foreground="#B0C4DE" FontSize="11"/>
+                            <TextBlock x:Name="PropertyTitle" Text="Title: --" Foreground="#B0C4DE" FontSize="11"/>
+                            <TextBlock x:Name="PropertyAgency" Text="Agency: --" Foreground="#B0C4DE" FontSize="11"/>
+                            <TextBlock x:Name="PropertyDuration" Text="Duration: --" Foreground="#B0C4DE" FontSize="11"/>
+                            <TextBlock x:Name="PropertyFilename" Text="File: --" Foreground="#607D8B" FontSize="10" Margin="0,4,0,0"/>
                         </StackPanel>
                     </Border>
                 </Grid>
