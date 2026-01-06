@@ -244,9 +244,23 @@ namespace AirStudio.CommercialManager.Windows
         private void LibraryButton_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedChannel == null) return;
-            // TODO: Implement library view
+
             WorkAreaTitle.Text = $"COMMERCIAL LIBRARY - {_selectedChannel.Name.ToUpperInvariant()}";
-            StatusLabel.Text = $"Library view for {_selectedChannel.Name} (coming soon)";
+
+            var libraryControl = new Controls.LibraryControl();
+            libraryControl.CommercialSelected += (s, commercial) =>
+            {
+                // Could update preview panel here
+            };
+            libraryControl.ScheduleRequested += (s, commercial) =>
+            {
+                // TODO: Open scheduling dialog for this commercial
+                MessageBox.Show($"Schedule '{commercial?.Spot}' - Coming soon", "Schedule", MessageBoxButton.OK, MessageBoxImage.Information);
+            };
+            libraryControl.Initialize(_selectedChannel);
+
+            WorkAreaContent.Child = libraryControl;
+            StatusLabel.Text = $"Library: {_selectedChannel.Name}";
         }
 
         private void CapsuleButton_Click(object sender, RoutedEventArgs e)

@@ -1,0 +1,102 @@
+<UserControl x:Class="AirStudio.CommercialManager.Controls.LibraryControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="800"
+             AllowDrop="True"
+             Drop="UserControl_Drop"
+             DragOver="UserControl_DragOver">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" Text="COMMERCIAL LIBRARY" FontWeight="Bold" FontSize="16"
+                   Foreground="#B0C4DE" Margin="0,0,0,16"/>
+
+        <!-- Search and Filter Bar -->
+        <Grid Grid.Row="1" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBox x:Name="SearchTextBox"
+                     Grid.Column="0"
+                     Height="36"
+                     VerticalContentAlignment="Center"
+                     TextChanged="SearchTextBox_TextChanged">
+                <TextBox.Style>
+                    <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                        <Style.Triggers>
+                            <Trigger Property="Text" Value="">
+                                <Setter Property="Background">
+                                    <Setter.Value>
+                                        <VisualBrush AlignmentX="Left" Stretch="None">
+                                            <VisualBrush.Visual>
+                                                <TextBlock Text="  Search by spot, title, or agency..." Foreground="#607D8B" Margin="5,0,0,0"/>
+                                            </VisualBrush.Visual>
+                                        </VisualBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBox.Style>
+            </TextBox>
+
+            <Button Grid.Column="1" Content="Refresh" Click="RefreshButton_Click" Width="80" Margin="8,0,0,0"/>
+            <TextBlock Grid.Column="2" x:Name="ItemCountLabel" Text="0 items"
+                       Foreground="#607D8B" VerticalAlignment="Center" Margin="12,0,0,0"/>
+        </Grid>
+
+        <!-- Commercial List -->
+        <Grid Grid.Row="2">
+            <!-- Drop overlay -->
+            <Border x:Name="DropOverlay" Background="#2A3D5A" CornerRadius="8" Visibility="Collapsed">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="Drop audio files here to add to library" FontSize="18"
+                               Foreground="#B0C4DE" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Supported: WAV, MP3, AIFF, M4A, WMA, OGG, FLAC"
+                               Foreground="#607D8B" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Commercial Grid -->
+            <DataGrid x:Name="CommercialGrid"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      SelectionMode="Single"
+                      SelectionChanged="CommercialGrid_SelectionChanged"
+                      MouseDoubleClick="CommercialGrid_MouseDoubleClick"
+                      Margin="0,0,0,12">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Spot" Binding="{Binding Spot}" Width="120" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="200" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Agency" Binding="{Binding Agency}" Width="150" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Duration" Binding="{Binding Duration}" Width="80" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Filename" Binding="{Binding Filename}" Width="150" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Last Update" Binding="{Binding LastUpdate, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Width="*" IsReadOnly="True"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+
+        <!-- Action Buttons -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal">
+            <Button x:Name="AddButton" Content="Add Commercial" Click="AddButton_Click" Width="120" Style="{StaticResource PrimaryButtonStyle}"/>
+            <Button x:Name="EditButton" Content="Edit" Click="EditButton_Click" Width="80" IsEnabled="False"/>
+            <Button x:Name="DeleteButton" Content="Delete" Click="DeleteButton_Click" Width="80" IsEnabled="False"/>
+            <Separator Margin="20,0" Background="Transparent"/>
+            <Button x:Name="ScheduleButton" Content="Schedule Selected" Click="ScheduleButton_Click" Width="120" IsEnabled="False"/>
+        </StackPanel>
+    </Grid>
+</UserControl>
