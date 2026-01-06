@@ -1,0 +1,204 @@
+<UserControl x:Class="AirStudio.CommercialManager.Controls.TagEditorControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:AirStudio.CommercialManager.Controls"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="1000">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" Text="IMPORT / EDIT TAG" FontWeight="Bold" FontSize="16"
+                   Foreground="#B0C4DE" Margin="0,0,0,16"/>
+
+        <!-- File Selection -->
+        <Border Grid.Row="1" Style="{StaticResource CardPanel}" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="TAG File:" Foreground="#B0C4DE"
+                           VerticalAlignment="Center" Margin="0,0,12,8"/>
+                <ComboBox Grid.Row="0" Grid.Column="1" x:Name="TagFileComboBox"
+                          Height="32" Margin="0,0,0,8"
+                          SelectionChanged="TagFileComboBox_SelectionChanged"/>
+                <Button Grid.Row="0" Grid.Column="2" Content="Refresh" Click="RefreshButton_Click"
+                        Width="80" Margin="8,0,0,8"/>
+                <Button Grid.Row="0" Grid.Column="3" Content="Browse..." Click="BrowseButton_Click"
+                        Width="80" Margin="8,0,0,8"/>
+
+                <!-- TAG Info -->
+                <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4" Orientation="Horizontal">
+                    <TextBlock Text="Capsule:" Foreground="#607D8B" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="CapsuleLabel" Text="--" Foreground="#E0E6ED"
+                               FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,20,0"/>
+                    <TextBlock Text="Time:" Foreground="#607D8B" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxTimeLabel" Text="--" Foreground="#5A8FC4"
+                               FontFamily="Consolas" VerticalAlignment="Center" Margin="8,0,20,0"/>
+                    <TextBlock Text="Date:" Foreground="#607D8B" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxDateLabel" Text="--" Foreground="#5A8FC4"
+                               VerticalAlignment="Center" Margin="8,0,20,0"/>
+                    <TextBlock Text="To:" Foreground="#607D8B" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="ToDateLabel" Text="--" Foreground="#5A8FC4"
+                               VerticalAlignment="Center" Margin="8,0,20,0"/>
+                    <TextBlock Text="Cuts:" Foreground="#607D8B" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="CutCountLabel" Text="--" Foreground="#E0E6ED"
+                               VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="350"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Entries List -->
+            <Border Grid.Column="0" Style="{StaticResource CardPanel}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="TAG ENTRIES" FontWeight="Bold"
+                               Foreground="#B0C4DE" Margin="0,0,0,8"/>
+
+                    <DataGrid Grid.Row="1" x:Name="EntriesGrid"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              SelectionMode="Single"
+                              SelectionChanged="EntriesGrid_SelectionChanged">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Cat" Binding="{Binding Category}" Width="40" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Time" Binding="{Binding TxTimeFormatted}" Width="70" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Spot Name" Binding="{Binding SpotName}" Width="120"/>
+                            <DataGridTextColumn Header="Capsule" Binding="{Binding CapsuleName}" Width="120"/>
+                            <DataGridTextColumn Header="Duration" Binding="{Binding DurationFormatted}" Width="70" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Audio Path" Binding="{Binding AudioPath}" Width="*"/>
+                            <DataGridTextColumn Header="Agency" Binding="{Binding AgencyCode}" Width="60"/>
+                            <DataGridTextColumn Header="Seq" Binding="{Binding SequenceToken}" Width="80" IsReadOnly="True"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch" Background="Transparent"/>
+
+            <!-- Edit Panel -->
+            <Border Grid.Column="2" Style="{StaticResource CardPanel}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="EDIT ENTRY" FontWeight="Bold"
+                               Foreground="#B0C4DE" Margin="0,0,0,12"/>
+
+                    <!-- Edit Fields -->
+                    <Grid Grid.Row="1" x:Name="EditPanel" IsEnabled="False">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Spot Name:"
+                                   Foreground="#B0C4DE" VerticalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" x:Name="SpotNameTextBox"
+                                 Height="32" Margin="0,0,0,8" VerticalContentAlignment="Center"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Capsule:"
+                                   Foreground="#B0C4DE" VerticalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" x:Name="CapsuleNameTextBox"
+                                 Height="32" Margin="0,0,0,8" VerticalContentAlignment="Center"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Audio Path:"
+                                   Foreground="#B0C4DE" VerticalAlignment="Center" Margin="0,0,0,8"/>
+                        <Grid Grid.Row="2" Grid.Column="1" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" x:Name="AudioPathTextBox"
+                                     Height="32" VerticalContentAlignment="Center"/>
+                            <Button Grid.Column="1" Content="..." Click="BrowseAudioButton_Click"
+                                    Width="32" Height="32" Margin="4,0,0,0"/>
+                        </Grid>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Agency:"
+                                   Foreground="#B0C4DE" VerticalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBox Grid.Row="3" Grid.Column="1" x:Name="AgencyCodeTextBox"
+                                 Height="32" Margin="0,0,0,8" VerticalContentAlignment="Center"/>
+
+                        <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
+                            <Button x:Name="ApplyButton" Content="Apply" Click="ApplyButton_Click"
+                                    Width="80" Style="{StaticResource PrimaryButtonStyle}"/>
+                            <Button x:Name="RevertButton" Content="Revert" Click="RevertButton_Click"
+                                    Width="80" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Waveform Preview -->
+                    <Border Grid.Row="2" Background="#0D1B2A" CornerRadius="6" Margin="0,12,0,0">
+                        <controls:WaveformViewer x:Name="EntryWaveform"/>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Status/Warnings -->
+        <Border Grid.Row="3" Margin="0,12,0,0" Padding="8" CornerRadius="4"
+                x:Name="StatusBorder" Background="#1A2A40">
+            <TextBlock x:Name="StatusLabel" Text="Select a TAG file to edit" Foreground="#B0C4DE"/>
+        </Border>
+
+        <!-- Action Buttons -->
+        <Grid Grid.Row="4" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <CheckBox Grid.Column="0" x:Name="ReplicateCheckBox" Content="Replicate to missing targets"
+                      IsChecked="True" Foreground="#B0C4DE" VerticalAlignment="Center"/>
+
+            <Button Grid.Column="2" x:Name="PreviewButton" Content="Preview Changes"
+                    Click="PreviewButton_Click" Width="120" Margin="0,0,8,0" IsEnabled="False"/>
+            <Button Grid.Column="3" x:Name="SaveButton" Content="Save TAG"
+                    Click="SaveButton_Click" Width="120"
+                    Style="{StaticResource PrimaryButtonStyle}" IsEnabled="False"/>
+        </Grid>
+    </Grid>
+</UserControl>

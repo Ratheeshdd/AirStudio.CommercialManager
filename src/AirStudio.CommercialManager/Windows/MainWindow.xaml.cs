@@ -368,9 +368,14 @@ namespace AirStudio.CommercialManager.Windows
         private void ImportTagButton_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedChannel == null) return;
-            // TODO: Implement TAG import/edit
+
             WorkAreaTitle.Text = $"IMPORT/EDIT TAG - {_selectedChannel.Name.ToUpperInvariant()}";
-            StatusLabel.Text = $"TAG editor for {_selectedChannel.Name} (coming soon)";
+
+            var tagEditor = new Controls.TagEditorControl();
+            tagEditor.Initialize(_selectedChannel);
+
+            WorkAreaContent.Child = tagEditor;
+            StatusLabel.Text = $"Editing TAGs for {_selectedChannel.Name}";
         }
 
         private void ViewScheduleButton_Click(object sender, RoutedEventArgs e)
