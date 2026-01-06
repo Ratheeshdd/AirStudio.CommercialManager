@@ -233,12 +233,19 @@
                     </Border>
 
                     <!-- Segment actions -->
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
-                        <Button x:Name="MoveUpButton" Content="Move Up" Click="MoveUpButton_Click"
-                                Width="80" IsEnabled="False"/>
-                        <Button x:Name="MoveDownButton" Content="Move Down" Click="MoveDownButton_Click"
-                                Width="80" Margin="8,0,0,0" IsEnabled="False"/>
-                    </StackPanel>
+                    <Grid Grid.Row="2" Margin="0,8,0,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                            <Button x:Name="MoveUpButton" Content="Move Up" Click="MoveUpButton_Click"
+                                    Width="80" IsEnabled="False"/>
+                            <Button x:Name="MoveDownButton" Content="Move Down" Click="MoveDownButton_Click"
+                                    Width="80" Margin="8,0,0,0" IsEnabled="False"/>
+                        </StackPanel>
+                        <Button x:Name="ScheduleCapsuleButton" Content="Schedule Capsule"
+                                Click="ScheduleCapsuleButton_Click"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Width="120" HorizontalAlignment="Right"
+                                IsEnabled="False"/>
+                    </Grid>
                 </Grid>
             </Border>
         </Grid>

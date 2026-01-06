@@ -118,6 +118,9 @@ namespace AirStudio.CommercialManager.Controls
             // Update move buttons
             UpdateMoveButtons();
 
+            // Update schedule button
+            ScheduleCapsuleButton.IsEnabled = _capsule.IsValid;
+
             // Notify change
             CapsuleChanged?.Invoke(this, _capsule);
         }
@@ -433,6 +436,11 @@ namespace AirStudio.CommercialManager.Controls
                     LogService.Info("Cleared capsule");
                 }
             }
+        }
+
+        private void ScheduleCapsuleButton_Click(object sender, RoutedEventArgs e)
+        {
+            SetCapsuleReady();
         }
 
         #endregion

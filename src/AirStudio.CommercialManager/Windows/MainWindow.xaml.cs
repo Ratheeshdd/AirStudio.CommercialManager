@@ -326,19 +326,43 @@ namespace AirStudio.CommercialManager.Windows
 
         private void ShowSchedulingForCapsule(Core.Models.Capsule capsule)
         {
-            if (capsule == null) return;
+            if (capsule == null || _selectedChannel == null) return;
 
-            WorkAreaTitle.Text = $"SCHEDULE: {capsule.Name}";
+            WorkAreaTitle.Text = $"SCHEDULE: {capsule.Name.ToUpperInvariant()}";
+
+            var schedulingControl = new Controls.SchedulingControl();
+            schedulingControl.EditCapsuleRequested += (s, c) =>
+            {
+                // Go back to capsule builder
+                CapsuleButton_Click(s, new RoutedEventArgs());
+            };
+            schedulingControl.ScheduleCompleted += (s, schedule) =>
+            {
+                StatusLabel.Text = $"Scheduled: {schedule.ToDisplayString()}";
+                // Could navigate to schedule view here
+            };
+            schedulingControl.Initialize(_selectedChannel, capsule);
+
+            WorkAreaContent.Child = schedulingControl;
             StatusLabel.Text = $"Scheduling capsule '{capsule.Name}' ({capsule.SegmentCount} segments)";
-            // TODO: Show scheduling control with the capsule
         }
 
         private void ScheduleButton_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedChannel == null) return;
-            // TODO: Implement scheduling
+
+            // Open capsule builder - user needs to build or select a capsule first
             WorkAreaTitle.Text = $"SCHEDULE COMMERCIAL - {_selectedChannel.Name.ToUpperInvariant()}";
-            StatusLabel.Text = $"Scheduling for {_selectedChannel.Name} (coming soon)";
+
+            var capsuleBuilder = new Controls.CapsuleBuilderControl();
+            capsuleBuilder.CapsuleReady += (s, capsule) =>
+            {
+                ShowSchedulingForCapsule(capsule);
+            };
+            capsuleBuilder.Initialize(_selectedChannel);
+
+            WorkAreaContent.Child = capsuleBuilder;
+            StatusLabel.Text = $"Build or select capsule to schedule for {_selectedChannel.Name}";
         }
 
         private void ImportTagButton_Click(object sender, RoutedEventArgs e)
