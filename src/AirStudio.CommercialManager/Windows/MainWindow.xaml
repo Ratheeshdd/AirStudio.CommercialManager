@@ -1,0 +1,219 @@
+﻿<Window x:Class="AirStudio.CommercialManager.Windows.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="AirStudio Commercial Manager"
+        Height="800" Width="1400"
+        MinHeight="600" MinWidth="1000"
+        WindowState="Maximized"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        Background="{DynamicResource WindowBackgroundBrush}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <!-- Title bar -->
+            <RowDefinition Height="40"/>
+            <!-- Main content -->
+            <RowDefinition Height="*"/>
+            <!-- Status bar -->
+            <RowDefinition Height="28"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title Bar -->
+        <Grid Grid.Row="0" Background="{DynamicResource PrimaryMidBrush}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- App Title -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                <TextBlock Text="AIRSTUDIO" FontSize="16" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                <TextBlock Text=" COMMERCIAL MANAGER" FontSize="16" FontWeight="Light" Foreground="#B0C4DE" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Channel Selector (animated until selected) -->
+            <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Channel:" Foreground="#B0C4DE" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <ComboBox x:Name="ChannelComboBox"
+                              Width="200"
+                              IsEnabled="True"
+                              ToolTip="Select a channel to begin">
+                        <ComboBox.Style>
+                            <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedItem, RelativeSource={RelativeSource Self}}" Value="{x:Null}">
+                                        <DataTrigger.EnterActions>
+                                            <BeginStoryboard>
+                                                <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                    <ColorAnimation Storyboard.TargetProperty="(ComboBox.BorderBrush).(SolidColorBrush.Color)"
+                                                                    From="#3D5A80" To="#5A8FC4" Duration="0:0:0.8"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </DataTrigger.EnterActions>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ComboBox.Style>
+                    </ComboBox>
+                </StackPanel>
+            </Border>
+
+            <!-- Configuration Button (Admin Only) -->
+            <Button x:Name="ConfigButton"
+                    Grid.Column="2"
+                    Content="Configuration"
+                    Style="{StaticResource RibbonButtonStyle}"
+                    Visibility="Collapsed"
+                    Click="ConfigButton_Click"
+                    Margin="0,0,8,0"/>
+
+            <!-- Window Controls -->
+            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,4,0">
+                <Button x:Name="MinimizeButton" Content="—" Width="40" Height="30"
+                        Style="{StaticResource RibbonButtonStyle}" Click="MinimizeButton_Click"/>
+                <Button x:Name="MaximizeButton" Content="☐" Width="40" Height="30"
+                        Style="{StaticResource RibbonButtonStyle}" Click="MaximizeButton_Click"/>
+                <Button x:Name="CloseButton" Content="✕" Width="40" Height="30"
+                        Click="CloseButton_Click">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource RibbonButtonStyle}">
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#C42B1C"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Main Content Area -->
+        <Grid Grid.Row="1" Margin="8">
+            <Grid.ColumnDefinitions>
+                <!-- Left: Navigation/Actions -->
+                <ColumnDefinition Width="220"/>
+                <!-- Center: Main work area -->
+                <ColumnDefinition Width="*"/>
+                <!-- Right: Properties/Preview -->
+                <ColumnDefinition Width="320"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Panel: Navigation -->
+            <Border Grid.Column="0" Style="{StaticResource StudioPanel}" Margin="0,0,4,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="ACTIONS" FontWeight="Bold" Foreground="#B0C4DE" Margin="0,0,0,12"/>
+
+                    <StackPanel Grid.Row="1">
+                        <Button x:Name="LibraryButton" Content="Commercial Library" Height="40" Margin="0,4" Style="{StaticResource PrimaryButtonStyle}"/>
+                        <Button x:Name="AgencyButton" Content="Manage Agencies" Height="40" Margin="0,4"/>
+                        <Button x:Name="CapsuleButton" Content="Build Capsule" Height="40" Margin="0,4"/>
+                        <Button x:Name="ScheduleButton" Content="Schedule Commercial" Height="40" Margin="0,4"/>
+                        <Button x:Name="ImportTagButton" Content="Import/Edit TAG" Height="40" Margin="0,4"/>
+
+                        <Separator Margin="0,16" Background="#3D5A80"/>
+
+                        <Button x:Name="ViewScheduleButton" Content="View Schedule" Height="40" Margin="0,4"/>
+                        <Button x:Name="ActivityLogButton" Content="Activity Log" Height="40" Margin="0,4"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Center Panel: Work Area -->
+            <Border Grid.Column="1" Style="{StaticResource StudioPanel}" Margin="4,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" x:Name="WorkAreaTitle" Text="SELECT A CHANNEL TO BEGIN"
+                               FontWeight="Bold" Foreground="#B0C4DE" Margin="0,0,0,12"/>
+
+                    <!-- Content will be loaded dynamically -->
+                    <Border Grid.Row="1" x:Name="WorkAreaContent">
+                        <TextBlock Style="{StaticResource EmptyHint}"
+                                   Text="Select a channel from the dropdown above, then choose an action from the left panel."/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Right Panel: Preview/Properties -->
+            <Border Grid.Column="2" Style="{StaticResource StudioPanel}" Margin="4,0,0,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="PREVIEW" FontWeight="Bold" Foreground="#B0C4DE" Margin="0,0,0,12"/>
+
+                    <!-- Waveform viewer placeholder -->
+                    <Border Grid.Row="1" Background="#0D1B2A" CornerRadius="6" Margin="0,0,0,8">
+                        <TextBlock Style="{StaticResource EmptyHint}" Text="Select an audio file to preview waveform"/>
+                    </Border>
+
+                    <!-- Properties panel -->
+                    <Border Grid.Row="2" Style="{StaticResource CardPanel}" MinHeight="150">
+                        <StackPanel>
+                            <TextBlock Text="Properties" FontWeight="SemiBold" Foreground="#E0E6ED" Margin="0,0,0,8"/>
+                            <TextBlock Text="No item selected" Foreground="#607D8B" FontStyle="Italic"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" Background="{DynamicResource PrimaryMidBrush}">
+            <Grid Margin="12,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- User info -->
+                <TextBlock Grid.Column="0" x:Name="UserLabel" Text="User: Loading..."
+                           Foreground="#B0C4DE" VerticalAlignment="Center"/>
+
+                <!-- Status message -->
+                <TextBlock Grid.Column="1" x:Name="StatusLabel" Text="Ready"
+                           Foreground="#B0C4DE" VerticalAlignment="Center" Margin="20,0,0,0"/>
+
+                <!-- Database status -->
+                <Border Grid.Column="2" CornerRadius="3" Padding="8,2" Margin="8,0"
+                        Background="{DynamicResource SuccessBackgroundBrush}">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessBrush}" Margin="0,0,6,0"/>
+                        <TextBlock x:Name="DbStatusLabel" Text="DB Connected" Foreground="{DynamicResource SuccessBrush}" FontSize="11"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- X Target status -->
+                <Border Grid.Column="3" CornerRadius="3" Padding="8,2" Margin="8,0"
+                        Background="{DynamicResource InfoBackgroundBrush}">
+                    <TextBlock x:Name="XTargetLabel" Text="X Targets: --" Foreground="{DynamicResource InfoBrush}" FontSize="11"/>
+                </Border>
+
+                <!-- Version -->
+                <TextBlock Grid.Column="4" Text="v1.0.0" Foreground="#607D8B" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
