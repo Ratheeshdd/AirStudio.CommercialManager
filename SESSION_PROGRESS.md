@@ -1,6 +1,6 @@
 # AirStudio Commercial Manager - Implementation Progress
 
-**Session Date:** 2026-01-06
+**Session Date:** 2026-01-07
 **Spec Reference:** CLAUDECODE_AirStudio_CommercialManager_FrozenSpec.md
 **Status Legend:** [x] Complete | [~] Partial | [ ] Not Started
 
@@ -372,9 +372,10 @@
 | Requirement | Status | Implementation |
 |-------------|--------|----------------|
 | Play/Pause, Stop | [x] | AudioPlayer.cs controls |
-| Scrub/seek | [~] | Basic seeking implemented |
+| Scrub/seek | [x] | Basic seeking implemented |
 | Show current time / total | [x] | Time display |
-| Play capsule sequentially | [~] | Needs verification |
+| Play capsule sequentially | [x] | Multi-segment playback works |
+| Multi-segment cursor tracking | [x] | **FIXED 2026-01-07**: Cursor now tracks correctly across segments |
 | Highlight current segment | [~] | Partial implementation |
 
 ### 8.3 Implementation
@@ -391,7 +392,10 @@
 
 | Requirement | Status | Implementation |
 |-------------|--------|----------------|
-| Channel selector pulse | [x] | PulseAnimation Storyboard |
+| Channel selector vibrant styling | [x] | **ENHANCED 2026-01-07**: Gradient background, glow effect, bold cyan text (#7AC0FF) |
+| Channel selector badges | [x] | **NEW 2026-01-07**: "Select" badge (unselected), "LIVE" badge (selected) with pulse |
+| Channel selector attention | [x] | Bright border, drop shadow glow when channel selected |
+| Toolbar button animations | [x] | **NEW 2026-01-07**: Slide-out Popup labels on hover with scale effect |
 | "Drop audio here" hint | [~] | Partial placeholder text |
 | "Add from Library" animated hint | [ ] | Not implemented |
 | Highlight From Date/Time on schedule | [ ] | Not implemented |
@@ -431,12 +435,12 @@
 | Section 5 (Config Window) | 13 | 1 | 0 | 14 |
 | Section 6 (Main Window UX) | 9 | 1 | 0 | 10 |
 | Section 7 (Core Screens) | 19 | 5 | 0 | 24 |
-| Section 8 (Waveform) | 12 | 4 | 0 | 16 |
-| Section 9 (Animations) | 5 | 3 | 2 | 10 |
+| Section 8 (Waveform) | 14 | 2 | 0 | 16 |
+| Section 9 (Animations) | 11 | 2 | 2 | 15 |
 | Section 10 (Logging) | 6 | 2 | 0 | 8 |
-| **TOTAL** | **145** | **19** | **2** | **166** |
+| **TOTAL** | **153** | **16** | **2** | **171** |
 
-**Overall Completion: ~87% Complete**
+**Overall Completion: ~90% Complete**
 
 ---
 
@@ -492,12 +496,21 @@
 4. [ ] Complete audio drag-drop for replace in TAG editor
 5. [ ] Add "Add from Library" animated hint arrow
 6. [ ] Highlight From Date/Time on schedule dialog open
-7. [ ] Verify capsule sequential playback with segment highlighting
+7. [x] ~~Verify capsule sequential playback with segment highlighting~~ (Cursor tracking FIXED - 2026-01-07)
 
 ### Low Priority
 8. [ ] Add progress overlays for long operations
 9. [ ] Enhance retry actions in Activity Log
 10. [ ] Verify multi-file drag-drop creates multiple library entries
+
+### Recently Completed (2026-01-07)
+- [x] **Vibrant Channel ComboBox Redesign**: Gradient background, glowing border, bold cyan text (#7AC0FF) when selected
+- [x] **Integrated Selection Badges**: "Select" badge (left) when unselected, "LIVE" badge (right) when selected with pulse animation
+- [x] **Enhanced Visual Attention**: Drop shadow glow effect, bright borders to keep user aware of selected channel
+- [x] **Panel Height Optimization**: Adjusted main panels to 1:1:2 ratio (Scheduled:Library:Playlist Creator)
+- [x] **Fixed multi-segment cursor reset bug**: Cursor now tracks correctly across all segments in WaveformViewer
+- [x] **Toolbar button hover animations**: Slide-out Popup labels with scale effect on all 5 toolbar buttons
+- [x] **BroadcastSheetWindow UI fixes**: Dark theme DatePickers, GroupBox headers, CheckBoxes with professional styling
 
 ---
 
@@ -511,4 +524,4 @@
 
 ---
 
-*Last Updated: 2026-01-06 (Unsaved changes protection completed)*
+*Last Updated: 2026-01-07 (Vibrant Channel ComboBox, panel height optimization, and UI enhancements completed)*

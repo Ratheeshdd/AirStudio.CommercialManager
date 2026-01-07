@@ -118,9 +118,9 @@ namespace AirStudio.CommercialManager.Windows
                 // Get data
                 var data = await _broadcastSheetService.GetBroadcastSheetDataAsync(fromDate, toDate, options);
 
-                // Update preview
-                PreviewDateRange.Text = $"Date Range: {data.PeriodDisplay}";
-                PreviewScheduleCount.Text = $"Schedules Found: {data.Summary.TotalSchedules}";
+                // Update preview (labels are now separate TextBlocks in XAML)
+                PreviewDateRange.Text = data.PeriodDisplay;
+                PreviewScheduleCount.Text = data.Summary.TotalSchedules.ToString();
 
                 if (data.Summary.TotalSchedules == 0)
                 {

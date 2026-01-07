@@ -5,11 +5,221 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Broadcast Sheet - PDF Export"
-        Height="500" Width="600"
+        Height="651" Width="620"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource WindowBackgroundBrush}">
 
-    <Grid Margin="20">
+    <Window.Resources>
+        <!-- Dark Theme GroupBox Style -->
+        <Style x:Key="DarkGroupBoxStyle" TargetType="GroupBox">
+            <Setter Property="Foreground" Value="#B0C4DE"/>
+            <Setter Property="BorderBrush" Value="#3D5A80"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GroupBox">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <!-- Header -->
+                            <Border Grid.Row="0" Background="#1A3A5A" CornerRadius="6,6,0,0"
+                                    BorderBrush="#3D5A80" BorderThickness="1,1,1,0" Padding="12,8">
+                                <TextBlock Text="{TemplateBinding Header}" FontWeight="SemiBold"
+                                           FontSize="12" Foreground="#B0C4DE"/>
+                            </Border>
+                            <!-- Content -->
+                            <Border Grid.Row="1" Background="#0F2540" CornerRadius="0,0,6,6"
+                                    BorderBrush="#3D5A80" BorderThickness="1,0,1,1" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Dark Theme DatePickerTextBox Style -->
+        <Style x:Key="DarkDatePickerTextBoxStyle" TargetType="DatePickerTextBox">
+            <Setter Property="Background" Value="#1A2A40"/>
+            <Setter Property="Foreground" Value="#E0E6ED"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DatePickerTextBox">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}">
+                                <ScrollViewer x:Name="PART_ContentHost"
+                                              HorizontalContentAlignment="Stretch"
+                                              VerticalContentAlignment="Center"/>
+                            </Border>
+                            <TextBlock x:Name="PART_Watermark" Text="Select date..."
+                                       Foreground="#607D8B" IsHitTestVisible="False"
+                                       Visibility="Collapsed" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Dark Theme DatePicker Style -->
+        <Style x:Key="DarkDatePickerStyle" TargetType="DatePicker">
+            <Setter Property="Background" Value="#1A2A40"/>
+            <Setter Property="Foreground" Value="#E0E6ED"/>
+            <Setter Property="BorderBrush" Value="#3D5A80"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="IsTodayHighlighted" Value="True"/>
+            <Setter Property="SelectedDateFormat" Value="Short"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DatePicker">
+                        <Grid x:Name="PART_Root">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <DatePickerTextBox x:Name="PART_TextBox" Grid.Column="0"
+                                                       Style="{StaticResource DarkDatePickerTextBoxStyle}"
+                                                       VerticalAlignment="Center"
+                                                       Focusable="{TemplateBinding Focusable}"/>
+                                    <Button x:Name="PART_Button" Grid.Column="1"
+                                            Background="Transparent" BorderThickness="0"
+                                            Padding="4,0" Cursor="Hand" Focusable="False"
+                                            HorizontalAlignment="Left" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="14" Foreground="#5A8FC4"/>
+                                    </Button>
+                                </Grid>
+                            </Border>
+                            <Popup x:Name="PART_Popup" AllowsTransparency="True"
+                                   Placement="Bottom" PlacementTarget="{Binding ElementName=PART_Root}"
+                                   StaysOpen="False"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="BorderBrush" Value="#5A8FC4"/>
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter Property="BorderBrush" Value="#5A8FC4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Dark Theme CheckBox Style -->
+        <Style x:Key="DarkCheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#E0E6ED"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="CheckBorder" Width="18" Height="18"
+                                    Background="#1A2A40" BorderBrush="#3D5A80" BorderThickness="1"
+                                    CornerRadius="3" VerticalAlignment="Center">
+                                <TextBlock x:Name="CheckMark" Text="✓" Foreground="#5A8FC4"
+                                           FontSize="12" FontWeight="Bold"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Visibility="Collapsed"/>
+                            </Border>
+                            <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="CheckBorder" Property="Background" Value="#1A3A5A"/>
+                                <Setter TargetName="CheckBorder" Property="BorderBrush" Value="#5A8FC4"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CheckBorder" Property="BorderBrush" Value="#5A8FC4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Quick Export Button Style -->
+        <Style x:Key="QuickExportButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#1B3A5F"/>
+            <Setter Property="Foreground" Value="#E0E6ED"/>
+            <Setter Property="BorderBrush" Value="#3D5A80"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#27639B"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#5A8FC4"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#1F5080"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Close Button Style -->
+        <Style x:Key="CloseButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#2A3A4A"/>
+            <Setter Property="Foreground" Value="#B0C4DE"/>
+            <Setter Property="BorderBrush" Value="#3D5A80"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#3A4A5A"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#5A8FC4"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#2A3A4A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -21,27 +231,33 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
-            <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="28" VerticalAlignment="Center"
-                       Foreground="#5A8FC4" Margin="0,0,12,0"/>
-            <StackPanel>
-                <TextBlock Text="BROADCAST SHEET" FontWeight="Bold" FontSize="18" Foreground="#B0C4DE"/>
-                <TextBlock x:Name="ChannelLabel" Text="Channel: --" FontSize="12" Foreground="#808080"/>
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,24">
+            <Border Background="#1A3A5A" CornerRadius="8" Padding="12" Margin="0,0,16,0">
+                <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="24"
+                           Foreground="#5A8FC4" VerticalAlignment="Center"/>
+            </Border>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="BROADCAST SHEET" FontWeight="Bold" FontSize="20" Foreground="#E0E6ED"/>
+                <TextBlock x:Name="ChannelLabel" Text="Channel: --" FontSize="13" Foreground="#5A8FC4" Margin="0,4,0,0"/>
             </StackPanel>
         </StackPanel>
 
         <!-- Quick Export Buttons -->
-        <GroupBox Grid.Row="1" Header="Quick Export" Margin="0,0,0,16" Padding="12">
+        <GroupBox Grid.Row="1" Header="Quick Export" Style="{StaticResource DarkGroupBoxStyle}" Margin="0,0,0,16">
             <WrapPanel>
-                <Button Content="Today" Click="TodayButton_Click" Width="100" Margin="0,0,8,0"/>
-                <Button Content="This Week" Click="ThisWeekButton_Click" Width="100" Margin="0,0,8,0"/>
-                <Button Content="This Month" Click="ThisMonthButton_Click" Width="100" Margin="0,0,8,0"/>
-                <Button Content="This Year" Click="ThisYearButton_Click" Width="100"/>
+                <Button Content="Today" Click="TodayButton_Click" Width="120"
+                        Style="{StaticResource QuickExportButtonStyle}" Margin="0,0,12,0"/>
+                <Button Content="This Week" Click="ThisWeekButton_Click" Width="120"
+                        Style="{StaticResource QuickExportButtonStyle}" Margin="0,0,12,0"/>
+                <Button Content="This Month" Click="ThisMonthButton_Click" Width="120"
+                        Style="{StaticResource QuickExportButtonStyle}" Margin="0,0,12,0"/>
+                <Button Content="This Year" Click="ThisYearButton_Click" Width="120"
+                        Style="{StaticResource QuickExportButtonStyle}"/>
             </WrapPanel>
         </GroupBox>
 
         <!-- Custom Date Range -->
-        <GroupBox Grid.Row="2" Header="Custom Date Range" Margin="0,0,0,16" Padding="12">
+        <GroupBox Grid.Row="2" Header="Custom Date Range" Style="{StaticResource DarkGroupBoxStyle}" Margin="0,0,0,16">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -51,46 +267,59 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0" Text="From:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <DatePicker Grid.Column="1" x:Name="FromDatePicker"/>
+                <TextBlock Grid.Column="0" Text="From:" Foreground="#B0C4DE" FontSize="13"
+                           VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <DatePicker Grid.Column="1" x:Name="FromDatePicker" Style="{StaticResource DarkDatePickerStyle}"/>
 
-                <TextBlock Grid.Column="2" Text="To:" VerticalAlignment="Center" Margin="16,0,8,0"/>
-                <DatePicker Grid.Column="3" x:Name="ToDatePicker"/>
+                <TextBlock Grid.Column="2" Text="To:" Foreground="#B0C4DE" FontSize="13"
+                           VerticalAlignment="Center" Margin="20,0,12,0"/>
+                <DatePicker Grid.Column="3" x:Name="ToDatePicker" Style="{StaticResource DarkDatePickerStyle}"/>
 
                 <Button Grid.Column="4" Content="Export Custom" Click="CustomExportButton_Click"
-                        Style="{StaticResource PrimaryButtonStyle}" MinWidth="120" Padding="12,6" Margin="16,0,0,0"/>
+                        Style="{StaticResource PrimaryButtonStyle}" MinWidth="130" Padding="16,10" Margin="20,0,0,0"/>
             </Grid>
         </GroupBox>
 
         <!-- Options -->
-        <GroupBox Grid.Row="3" Header="Include in Report" Margin="0,0,0,16" Padding="12">
+        <GroupBox Grid.Row="3" Header="Include in Report" Style="{StaticResource DarkGroupBoxStyle}" Margin="0,0,0,16">
             <WrapPanel>
-                <CheckBox x:Name="IncludeSpotDetailsCheckBox" Content="Spot Details" IsChecked="True" Margin="0,0,20,0"/>
-                <CheckBox x:Name="IncludeAgencyInfoCheckBox" Content="Agency Info" IsChecked="True" Margin="0,0,20,0"/>
-                <CheckBox x:Name="IncludeUserInfoCheckBox" Content="User Info" IsChecked="True"/>
+                <CheckBox x:Name="IncludeSpotDetailsCheckBox" Content="Spot Details" IsChecked="True"
+                          Style="{StaticResource DarkCheckBoxStyle}" Margin="0,0,32,0"/>
+                <CheckBox x:Name="IncludeAgencyInfoCheckBox" Content="Agency Info" IsChecked="True"
+                          Style="{StaticResource DarkCheckBoxStyle}" Margin="0,0,32,0"/>
+                <CheckBox x:Name="IncludeUserInfoCheckBox" Content="User Info" IsChecked="True"
+                          Style="{StaticResource DarkCheckBoxStyle}"/>
             </WrapPanel>
         </GroupBox>
 
         <!-- Preview / Summary -->
-        <GroupBox Grid.Row="4" Header="Preview" Margin="0,0,0,16" Padding="12">
+        <GroupBox Grid.Row="4" Header="Preview" Style="{StaticResource DarkGroupBoxStyle}" Margin="0,0,0,16">
             <StackPanel>
-                <TextBlock x:Name="PreviewDateRange" Text="Date Range: --" Margin="0,0,0,4"/>
-                <TextBlock x:Name="PreviewScheduleCount" Text="Schedules Found: --"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="Date Range:" Foreground="#808FA0" FontSize="13" Margin="0,0,8,0"/>
+                    <TextBlock x:Name="PreviewDateRange" Text="--" Foreground="#E0E6ED" FontSize="13" FontWeight="SemiBold"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Schedules Found:" Foreground="#808FA0" FontSize="13" Margin="0,0,8,0"/>
+                    <TextBlock x:Name="PreviewScheduleCount" Text="--" Foreground="#5A8FC4" FontSize="13" FontWeight="SemiBold"/>
+                </StackPanel>
             </StackPanel>
         </GroupBox>
 
         <!-- Status -->
-        <Border Grid.Row="5" x:Name="StatusBorder" Background="#2A3A4A" CornerRadius="4" Padding="12"
-                Visibility="Collapsed">
+        <Border Grid.Row="5" x:Name="StatusBorder" Background="#1A3A5A" CornerRadius="6" Padding="16"
+                Visibility="Collapsed" BorderBrush="#3D5A80" BorderThickness="1">
             <StackPanel>
-                <TextBlock x:Name="StatusText" Text="Processing..." Foreground="White"/>
-                <ProgressBar x:Name="ProgressBar" IsIndeterminate="True" Height="4" Margin="0,8,0,0"/>
+                <TextBlock x:Name="StatusText" Text="Processing..." Foreground="#E0E6ED" FontSize="13"/>
+                <ProgressBar x:Name="ProgressBar" IsIndeterminate="True" Height="4" Margin="0,12,0,0"
+                             Background="#2A3A4A" Foreground="#5A8FC4"/>
             </StackPanel>
         </Border>
 
         <!-- Footer Buttons -->
-        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-            <Button Content="Close" Click="CloseButton_Click" Width="100" IsCancel="True"/>
+        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="Close" Click="CloseButton_Click" Width="120" IsCancel="True"
+                    Style="{StaticResource CloseButtonStyle}"/>
         </StackPanel>
     </Grid>
 </Window>

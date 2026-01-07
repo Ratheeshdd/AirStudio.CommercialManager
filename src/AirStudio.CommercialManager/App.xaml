@@ -151,6 +151,88 @@
             </Setter>
         </Style>
 
+        <!-- Animated Toolbar Button Style (with scale animation on hover) -->
+        <Style x:Key="AnimatedToolbarButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#1B3A5F"/>
+            <Setter Property="Foreground" Value="#E0E6ED"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="1" ScaleY="1"/>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="#3D5A80"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#0D3060"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#4A7FB4"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <EventTrigger RoutedEvent="MouseEnter">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation To="1.1" Duration="0:0:0.15"
+                                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleX)">
+                                <DoubleAnimation.EasingFunction>
+                                    <CubicEase EasingMode="EaseOut"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                            <DoubleAnimation To="1.1" Duration="0:0:0.15"
+                                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleY)">
+                                <DoubleAnimation.EasingFunction>
+                                    <CubicEase EasingMode="EaseOut"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+                <EventTrigger RoutedEvent="MouseLeave">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation To="1.0" Duration="0:0:0.15"
+                                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleX)">
+                                <DoubleAnimation.EasingFunction>
+                                    <CubicEase EasingMode="EaseOut"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                            <DoubleAnimation To="1.0" Duration="0:0:0.15"
+                                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleY)">
+                                <DoubleAnimation.EasingFunction>
+                                    <CubicEase EasingMode="EaseOut"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- Primary Action Button Style -->
         <Style x:Key="PrimaryButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="{DynamicResource PrimaryAccentBrush}"/>
@@ -223,6 +305,373 @@
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="border" Property="Background" Value="#2A4766"/>
                                 <Setter Property="Foreground" Value="#6C8599"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Dark Theme DatePickerTextBox Style -->
+        <Style x:Key="DarkDatePickerTextBoxStyle" TargetType="DatePickerTextBox">
+            <Setter Property="Background" Value="#1A2A40"/>
+            <Setter Property="Foreground" Value="#E0E6ED"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DatePickerTextBox">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}">
+                                <ScrollViewer x:Name="PART_ContentHost"
+                                              HorizontalContentAlignment="Stretch"
+                                              VerticalContentAlignment="Center"/>
+                            </Border>
+                            <TextBlock x:Name="PART_Watermark" Text="Select date..."
+                                       Foreground="#607D8B" IsHitTestVisible="False"
+                                       Visibility="Collapsed" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Dark Theme DatePicker Style -->
+        <Style x:Key="DarkDatePickerStyle" TargetType="DatePicker">
+            <Setter Property="Background" Value="#1A2A40"/>
+            <Setter Property="Foreground" Value="#E0E6ED"/>
+            <Setter Property="BorderBrush" Value="#3D5A80"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="IsTodayHighlighted" Value="True"/>
+            <Setter Property="SelectedDateFormat" Value="Short"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DatePicker">
+                        <Grid x:Name="PART_Root">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <DatePickerTextBox x:Name="PART_TextBox" Grid.Column="0"
+                                                       Style="{StaticResource DarkDatePickerTextBoxStyle}"
+                                                       VerticalAlignment="Center"
+                                                       Focusable="{TemplateBinding Focusable}"/>
+                                    <Button x:Name="PART_Button" Grid.Column="1"
+                                            Background="Transparent" BorderThickness="0"
+                                            Padding="4,0" Cursor="Hand" Focusable="False"
+                                            HorizontalAlignment="Left" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="14" Foreground="#5A8FC4"/>
+                                    </Button>
+                                </Grid>
+                            </Border>
+                            <Popup x:Name="PART_Popup" AllowsTransparency="True"
+                                   Placement="Bottom" PlacementTarget="{Binding ElementName=PART_Root}"
+                                   StaysOpen="False"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="BorderBrush" Value="#5A8FC4"/>
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter Property="BorderBrush" Value="#5A8FC4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Channel ComboBox ToggleButton Style -->
+        <Style x:Key="ChannelComboBoxToggleButton" TargetType="ToggleButton">
+            <Setter Property="Background" Value="#0D2844"/>
+            <Setter Property="BorderBrush" Value="#3D5A80"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="ClickMode" Value="Press"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="MainBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" Padding="4">
+                            <Border.Effect>
+                                <DropShadowEffect x:Name="BorderGlow" Color="#5A8FC4" BlurRadius="0" ShadowDepth="0" Opacity="0"/>
+                            </Border.Effect>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <!-- Channel Icon -->
+                                <Border x:Name="IconBorder" Grid.Column="0" Background="#1A3A5A" CornerRadius="4"
+                                        Padding="8,6" Margin="2" VerticalAlignment="Center">
+                                    <TextBlock x:Name="ChannelIcon" Text="&#xE774;" FontFamily="Segoe MDL2 Assets"
+                                               FontSize="16" Foreground="#5A8FC4" VerticalAlignment="Center"/>
+                                </Border>
+                                <!-- Content area -->
+                                <ContentPresenter x:Name="ContentArea" Grid.Column="1" VerticalAlignment="Center" Margin="8,0"/>
+                                <!-- Dropdown arrow -->
+                                <Border Grid.Column="2" Padding="8,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="Arrow" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                               FontSize="12" Foreground="#5A8FC4"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="#5A8FC4"/>
+                                <Setter TargetName="MainBorder" Property="Background" Value="#1A3A5A"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="#7AB0E0"/>
+                                <Setter TargetName="Arrow" Property="Text" Value="&#xE70E;"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Vibrant Channel ComboBox ToggleButton Style (when channel selected) -->
+        <Style x:Key="ChannelComboBoxToggleButtonSelected" TargetType="ToggleButton">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#1A4A7A" Offset="0"/>
+                        <GradientStop Color="#0D3058" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush" Value="#5A9FD4"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="ClickMode" Value="Press"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="MainBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" Padding="4">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#5A9FD4" BlurRadius="12" ShadowDepth="0" Opacity="0.6"/>
+                            </Border.Effect>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <!-- Channel Icon - Vibrant -->
+                                <Border Grid.Column="0" CornerRadius="4"
+                                        Padding="8,6" Margin="2" VerticalAlignment="Center">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#2A6AAA" Offset="0"/>
+                                            <GradientStop Color="#1A4A7A" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets"
+                                               FontSize="16" Foreground="#7AC0FF" VerticalAlignment="Center"/>
+                                </Border>
+                                <!-- Content area - Channel name prominent -->
+                                <ContentPresenter Grid.Column="1" VerticalAlignment="Center" Margin="8,0"/>
+                                <!-- Dropdown arrow -->
+                                <Border Grid.Column="2" Padding="8,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="Arrow" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                               FontSize="12" Foreground="#7AC0FF"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="#7AC0FF"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="#9AD0FF"/>
+                                <Setter TargetName="Arrow" Property="Text" Value="&#xE70E;"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Vibrant Channel ComboBox Style -->
+        <Style x:Key="ChannelComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Background" Value="#0D2844"/>
+            <Setter Property="Foreground" Value="#7AC0FF"/>
+            <Setter Property="BorderBrush" Value="#3D5A80"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="MinWidth" Value="220"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Foreground" Value="#E0E6ED"/>
+                        <Setter Property="Padding" Value="12,10"/>
+                        <Setter Property="FontSize" Value="14"/>
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="ItemBorder" Background="{TemplateBinding Background}"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="ItemBorder" Property="Background" Value="#27639B"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="ItemBorder" Property="Background" Value="#1A3A5A"/>
+                                            <Setter Property="Foreground" Value="#7AC0FF"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid x:Name="templateRoot" SnapsToDevicePixels="True">
+                            <!-- Unselected State Border (muted) -->
+                            <Border x:Name="UnselectedBorder" CornerRadius="6" Padding="4"
+                                    Background="#0D2844" BorderBrush="#3D5A80" BorderThickness="2"
+                                    Visibility="Collapsed">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Background="#1A3A5A" CornerRadius="4"
+                                            Padding="8,6" Margin="2" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="16" Foreground="#5A8FC4" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Text="Select Channel..." Foreground="#607D8B"
+                                               FontStyle="Italic" FontWeight="Normal" FontSize="14"
+                                               VerticalAlignment="Center" Margin="8,0"/>
+                                    <Border Grid.Column="2" Padding="8,0" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="12" Foreground="#5A8FC4"/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <!-- Selected State Border (vibrant with glow) -->
+                            <Border x:Name="SelectedBorder" CornerRadius="6" Padding="4"
+                                    BorderBrush="#5A9FD4" BorderThickness="2">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Color="#1A4A7A" Offset="0"/>
+                                        <GradientStop Color="#0D3058" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#5A9FD4" BlurRadius="15" ShadowDepth="0" Opacity="0.5"/>
+                                </Border.Effect>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <!-- Channel Icon - Vibrant -->
+                                    <Border Grid.Column="0" CornerRadius="4"
+                                            Padding="8,6" Margin="2" VerticalAlignment="Center">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                <GradientStop Color="#2A6AAA" Offset="0"/>
+                                                <GradientStop Color="#1A4A7A" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                        <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="16" Foreground="#7AC0FF" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <!-- Content area - Bright cyan text -->
+                                    <ContentPresenter x:Name="contentPresenter" Grid.Column="1"
+                                                      Content="{TemplateBinding SelectionBoxItem}"
+                                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                      ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                                                      HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                      IsHitTestVisible="False" Margin="8,0"
+                                                      TextBlock.Foreground="#7AC0FF"
+                                                      TextBlock.FontWeight="Bold"
+                                                      TextBlock.FontSize="15"/>
+                                    <!-- Dropdown arrow -->
+                                    <Border Grid.Column="2" Padding="8,0" VerticalAlignment="Center">
+                                        <TextBlock x:Name="Arrow" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="12" Foreground="#7AC0FF"/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <!-- Invisible ToggleButton covering entire area for click handling -->
+                            <ToggleButton x:Name="toggleButton"
+                                          Background="Transparent" BorderThickness="0"
+                                          Cursor="Hand" Focusable="False" ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"/>
+
+                            <!-- Dropdown popup -->
+                            <Popup x:Name="PART_Popup" AllowsTransparency="True"
+                                   IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                                   Placement="Bottom" PlacementTarget="{Binding ElementName=SelectedBorder}"
+                                   PopupAnimation="Slide" Focusable="False">
+                                <Border Background="#0D2844" BorderBrush="#5A9FD4"
+                                        BorderThickness="1" CornerRadius="6" Margin="0,4,0,0"
+                                        MinWidth="{Binding ActualWidth, ElementName=templateRoot}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="Black" BlurRadius="15" ShadowDepth="5" Opacity="0.5"/>
+                                    </Border.Effect>
+                                    <ScrollViewer>
+                                        <ItemsPresenter x:Name="ItemsPresenter"
+                                                        KeyboardNavigation.DirectionalNavigation="Contained"
+                                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <!-- No selection - show unselected border -->
+                            <Trigger Property="SelectedIndex" Value="-1">
+                                <Setter TargetName="UnselectedBorder" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="SelectedBorder" Property="Visibility" Value="Collapsed"/>
+                            </Trigger>
+                            <Trigger Property="HasItems" Value="False">
+                                <Setter TargetName="UnselectedBorder" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="SelectedBorder" Property="Visibility" Value="Collapsed"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="SelectedBorder" Property="Opacity" Value="0.5"/>
+                                <Setter TargetName="UnselectedBorder" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                            <!-- Dropdown open -->
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="SelectedBorder" Property="BorderBrush" Value="#9AD0FF"/>
+                                <Setter TargetName="Arrow" Property="Text" Value="&#xE70E;"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

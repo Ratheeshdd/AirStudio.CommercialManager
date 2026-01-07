@@ -459,7 +459,15 @@ namespace AirStudio.CommercialManager.Controls
             if (width <= 0 || duration.TotalSeconds <= 0)
                 return;
 
+            // FIX: Add accumulated time for multi-segment capsules
+            // When playing capsules, _audioPlayer.Position resets to 0 for each new segment,
+            // but the playhead should show the total position across all segments
             var position = _audioPlayer.Position;
+            if (_capsuleData != null)
+            {
+                position = position + _accumulatedTime;
+            }
+
             var x = (position.TotalSeconds / duration.TotalSeconds) * width;
 
             Playhead.X1 = x;

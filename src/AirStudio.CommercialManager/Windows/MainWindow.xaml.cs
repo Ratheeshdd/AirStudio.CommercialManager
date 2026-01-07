@@ -63,6 +63,32 @@ namespace AirStudio.CommercialManager.Windows
             WaveformViewer.StateChanged += WaveformViewer_StateChanged;
             WaveformViewer.PositionChanged += WaveformViewer_PositionChanged;
             WaveformViewer.PlaybackCompleted += WaveformViewer_PlaybackCompleted;
+
+            // Setup toolbar button popup animations
+            SetupToolbarPopups();
+        }
+
+        private void SetupToolbarPopups()
+        {
+            // Broadcast Sheet button popup
+            BroadcastSheetButton.MouseEnter += (s, e) => BroadcastSheetPopup.IsOpen = true;
+            BroadcastSheetButton.MouseLeave += (s, e) => BroadcastSheetPopup.IsOpen = false;
+
+            // Agencies button popup
+            AgenciesButton.MouseEnter += (s, e) => AgenciesPopup.IsOpen = true;
+            AgenciesButton.MouseLeave += (s, e) => AgenciesPopup.IsOpen = false;
+
+            // Library Cleanup button popup
+            LibraryCleanupButton.MouseEnter += (s, e) => LibraryCleanupPopup.IsOpen = true;
+            LibraryCleanupButton.MouseLeave += (s, e) => LibraryCleanupPopup.IsOpen = false;
+
+            // Activity Log button popup
+            ActivityLogButton.MouseEnter += (s, e) => ActivityLogPopup.IsOpen = true;
+            ActivityLogButton.MouseLeave += (s, e) => ActivityLogPopup.IsOpen = false;
+
+            // Refresh All button popup
+            RefreshAllButton.MouseEnter += (s, e) => RefreshAllPopup.IsOpen = true;
+            RefreshAllButton.MouseLeave += (s, e) => RefreshAllPopup.IsOpen = false;
         }
 
         #region Window Events
@@ -210,6 +236,9 @@ namespace AirStudio.CommercialManager.Windows
         {
             LogService.Info($"Channel selected: {channel.Name}");
 
+            // Show the selected channel indicator
+            SelectedGlow.Visibility = Visibility.Visible;
+
             // Initialize services
             _commercialService = new CommercialService(channel);
             _tagService = new TagService(channel);
@@ -242,6 +271,9 @@ namespace AirStudio.CommercialManager.Windows
 
         private void DisableAllPanels()
         {
+            // Hide the selected channel indicator
+            SelectedGlow.Visibility = Visibility.Collapsed;
+
             EnableToolbarButtons(false);
             XTargetLabel.Text = "X Targets: --";
 

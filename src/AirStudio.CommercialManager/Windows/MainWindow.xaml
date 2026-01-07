@@ -38,33 +38,97 @@
                 <TextBlock Text=" COMMERCIAL MANAGER" FontSize="16" FontWeight="Light" Foreground="#B0C4DE" VerticalAlignment="Center"/>
             </StackPanel>
 
-            <!-- Channel Selector (animated until selected) -->
-            <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Channel:" Foreground="#B0C4DE" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <ComboBox x:Name="ChannelComboBox"
-                              Width="200"
-                              IsEnabled="True"
-                              ToolTip="Select a channel to begin">
-                        <ComboBox.Style>
-                            <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SelectedItem, RelativeSource={RelativeSource Self}}" Value="{x:Null}">
-                                        <DataTrigger.EnterActions>
-                                            <BeginStoryboard>
-                                                <Storyboard RepeatBehavior="Forever" AutoReverse="True">
-                                                    <ColorAnimation Storyboard.TargetProperty="(ComboBox.BorderBrush).(SolidColorBrush.Color)"
-                                                                    From="#3D5A80" To="#5A8FC4" Duration="0:0:0.8"/>
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </DataTrigger.EnterActions>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ComboBox.Style>
-                    </ComboBox>
-                </StackPanel>
-            </Border>
+            <!-- Channel Selector with Integrated Badge -->
+            <Grid Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Hint Badge (Left side, when no channel selected) -->
+                <Border x:Name="ChannelHintLeft" Grid.Column="0"
+                        Background="#27639B" CornerRadius="4,0,0,4"
+                        Padding="10,6" VerticalAlignment="Center" Margin="0,0,-1,0"
+                        RenderTransformOrigin="0.5,0.5">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#27639B" BlurRadius="8" ShadowDepth="0" Opacity="0.5"/>
+                    </Border.Effect>
+                    <Border.RenderTransform>
+                        <TranslateTransform x:Name="HintTransform"/>
+                    </Border.RenderTransform>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE72A;" FontFamily="Segoe MDL2 Assets" Foreground="White"
+                                   FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Select" Foreground="White" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SelectedItem, ElementName=ChannelComboBox}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                                <!-- Pulse animation on load -->
+                                <EventTrigger RoutedEvent="Border.Loaded">
+                                    <BeginStoryboard>
+                                        <Storyboard RepeatBehavior="Forever">
+                                            <DoubleAnimation Storyboard.TargetProperty="(RenderTransform).(TranslateTransform.X)"
+                                                             From="0" To="4" Duration="0:0:0.4"
+                                                             AutoReverse="True">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <SineEase EasingMode="EaseInOut"/>
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                             From="0.8" To="1.0" Duration="0:0:0.4"
+                                                             AutoReverse="True"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                </Border>
+
+                <!-- Main ComboBox -->
+                <ComboBox x:Name="ChannelComboBox" Grid.Column="1"
+                          Style="{StaticResource ChannelComboBoxStyle}"
+                          IsEnabled="True"
+                          ToolTip="Select a channel to manage commercials"/>
+
+                <!-- Selected Channel Glow Indicator (Right side, when channel IS selected) -->
+                <Border x:Name="SelectedGlow" Grid.Column="2"
+                        Background="#00C853" CornerRadius="0,4,4,0"
+                        Padding="10,6" VerticalAlignment="Center" Margin="-1,0,0,0"
+                        Visibility="Collapsed">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#00C853" BlurRadius="10" ShadowDepth="0" Opacity="0.6"/>
+                    </Border.Effect>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" Foreground="White"
+                                   FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="LIVE" Foreground="White" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Style.Triggers>
+                                <!-- Continuous pulse animation when visible -->
+                                <EventTrigger RoutedEvent="Border.Loaded">
+                                    <BeginStoryboard>
+                                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                             From="0.7" To="1.0" Duration="0:0:0.8"/>
+                                            <DoubleAnimation Storyboard.TargetProperty="(Border.Effect).(DropShadowEffect.BlurRadius)"
+                                                             From="10" To="20" Duration="0:0:0.8"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                </Border>
+            </Grid>
 
             <!-- Configuration Button (Admin Only) -->
             <Button x:Name="ConfigButton"
@@ -105,42 +169,90 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Vertical Sidebar -->
+            <!-- Vertical Sidebar with Popup-based Animated Labels -->
             <Border Grid.Column="0" Background="#0F2540" BorderBrush="#3D5A80" BorderThickness="0,0,1,0">
                 <StackPanel Margin="4,8">
+                    <!-- Broadcast Sheet Button -->
                     <Button x:Name="BroadcastSheetButton" Width="40" Height="40"
-                            Style="{StaticResource RibbonButtonStyle}"
-                            Click="BroadcastSheetButton_Click" IsEnabled="False"
-                            ToolTip="Export broadcast sheet to PDF">
+                            Style="{StaticResource AnimatedToolbarButtonStyle}"
+                            Click="BroadcastSheetButton_Click" IsEnabled="False">
                         <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
                     </Button>
+                    <Popup x:Name="BroadcastSheetPopup" Placement="Right" PlacementTarget="{Binding ElementName=BroadcastSheetButton}"
+                           HorizontalOffset="2" VerticalOffset="-4" AllowsTransparency="True" PopupAnimation="Slide">
+                        <Border Background="#2A5080" CornerRadius="4" Padding="12,8">
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="8" ShadowDepth="2" Opacity="0.4"/>
+                            </Border.Effect>
+                            <TextBlock Text="Broadcast Sheet" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
+                        </Border>
+                    </Popup>
+
+                    <!-- Agencies Button -->
                     <Button x:Name="AgenciesButton" Width="40" Height="40" Margin="0,4,0,0"
-                            Style="{StaticResource RibbonButtonStyle}"
-                            Click="AgenciesButton_Click" IsEnabled="False"
-                            ToolTip="Manage advertising agencies">
+                            Style="{StaticResource AnimatedToolbarButtonStyle}"
+                            Click="AgenciesButton_Click" IsEnabled="False">
                         <TextBlock Text="&#xE716;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
                     </Button>
+                    <Popup x:Name="AgenciesPopup" Placement="Right" PlacementTarget="{Binding ElementName=AgenciesButton}"
+                           HorizontalOffset="2" VerticalOffset="-4" AllowsTransparency="True" PopupAnimation="Slide">
+                        <Border Background="#2A5080" CornerRadius="4" Padding="12,8">
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="8" ShadowDepth="2" Opacity="0.4"/>
+                            </Border.Effect>
+                            <TextBlock Text="Agencies" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
+                        </Border>
+                    </Popup>
+
+                    <!-- Library Cleanup Button -->
                     <Button x:Name="LibraryCleanupButton" Width="40" Height="40" Margin="0,4,0,0"
-                            Style="{StaticResource RibbonButtonStyle}"
-                            Click="LibraryCleanupButton_Click" IsEnabled="False"
-                            ToolTip="Clean up old commercials">
+                            Style="{StaticResource AnimatedToolbarButtonStyle}"
+                            Click="LibraryCleanupButton_Click" IsEnabled="False">
                         <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
                     </Button>
+                    <Popup x:Name="LibraryCleanupPopup" Placement="Right" PlacementTarget="{Binding ElementName=LibraryCleanupButton}"
+                           HorizontalOffset="2" VerticalOffset="-4" AllowsTransparency="True" PopupAnimation="Slide">
+                        <Border Background="#2A5080" CornerRadius="4" Padding="12,8">
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="8" ShadowDepth="2" Opacity="0.4"/>
+                            </Border.Effect>
+                            <TextBlock Text="Library Cleanup" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
+                        </Border>
+                    </Popup>
+
+                    <!-- Activity Log Button -->
                     <Button x:Name="ActivityLogButton" Width="40" Height="40" Margin="0,4,0,0"
-                            Style="{StaticResource RibbonButtonStyle}"
-                            Click="ActivityLogButton_Click"
-                            ToolTip="View activity log">
+                            Style="{StaticResource AnimatedToolbarButtonStyle}"
+                            Click="ActivityLogButton_Click">
                         <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
                     </Button>
+                    <Popup x:Name="ActivityLogPopup" Placement="Right" PlacementTarget="{Binding ElementName=ActivityLogButton}"
+                           HorizontalOffset="2" VerticalOffset="-4" AllowsTransparency="True" PopupAnimation="Slide">
+                        <Border Background="#2A5080" CornerRadius="4" Padding="12,8">
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="8" ShadowDepth="2" Opacity="0.4"/>
+                            </Border.Effect>
+                            <TextBlock Text="Activity Log" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
+                        </Border>
+                    </Popup>
 
                     <Separator Margin="4,12" Background="#3D5A80"/>
 
+                    <!-- Refresh All Button -->
                     <Button x:Name="RefreshAllButton" Width="40" Height="40"
-                            Style="{StaticResource RibbonButtonStyle}"
-                            Click="RefreshAllButton_Click" IsEnabled="False"
-                            ToolTip="Refresh all panels (F5)">
+                            Style="{StaticResource AnimatedToolbarButtonStyle}"
+                            Click="RefreshAllButton_Click" IsEnabled="False">
                         <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
                     </Button>
+                    <Popup x:Name="RefreshAllPopup" Placement="Right" PlacementTarget="{Binding ElementName=RefreshAllButton}"
+                           HorizontalOffset="2" VerticalOffset="-4" AllowsTransparency="True" PopupAnimation="Slide">
+                        <Border Background="#2A5080" CornerRadius="4" Padding="12,8">
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="8" ShadowDepth="2" Opacity="0.4"/>
+                            </Border.Effect>
+                            <TextBlock Text="Refresh All (F5)" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
+                        </Border>
+                    </Popup>
                 </StackPanel>
             </Border>
 
@@ -150,14 +262,14 @@
             <!-- Three Vertical Panels -->
             <Grid Grid.Column="1" Margin="8">
             <Grid.RowDefinitions>
-                <!-- Top: Scheduled Commercials (1/3) -->
-                <RowDefinition Height="*" MinHeight="150"/>
+                <!-- Top: Scheduled Commercials (1/4 of space) -->
+                <RowDefinition Height="1*" MinHeight="120"/>
                 <RowDefinition Height="5"/>
-                <!-- Middle: Commercial Library (1/3) -->
-                <RowDefinition Height="*" MinHeight="150"/>
+                <!-- Middle: Commercial Library (1/4 of space) -->
+                <RowDefinition Height="1*" MinHeight="120"/>
                 <RowDefinition Height="5"/>
-                <!-- Bottom: Playlist Creator + Waveform (1/3) -->
-                <RowDefinition Height="*" MinHeight="200"/>
+                <!-- Bottom: Playlist Creator + Waveform (2/4 = 1/2 of space) -->
+                <RowDefinition Height="2*" MinHeight="250"/>
             </Grid.RowDefinitions>
 
             <!-- TOP PANEL: Scheduled Commercials -->
@@ -213,11 +325,13 @@
                         <TextBlock Grid.Column="1" Text="From:" Foreground="#B0C4DE"
                                    VerticalAlignment="Center" Margin="12,0,4,0"/>
                         <DatePicker x:Name="ScheduleFromDatePicker" Grid.Column="2" Width="120"
+                                    Style="{StaticResource DarkDatePickerStyle}"
                                     SelectedDateChanged="ScheduleDateFilter_Changed"/>
 
                         <TextBlock Grid.Column="3" Text="To:" Foreground="#B0C4DE"
                                    VerticalAlignment="Center" Margin="8,0,4,0"/>
                         <DatePicker x:Name="ScheduleToDatePicker" Grid.Column="4" Width="120"
+                                    Style="{StaticResource DarkDatePickerStyle}"
                                     HorizontalAlignment="Left"
                                     SelectedDateChanged="ScheduleDateFilter_Changed"/>
 
@@ -434,7 +548,8 @@
 
                         <TextBlock Grid.Column="2" Text="Tx Date:" Foreground="#B0C4DE"
                                    VerticalAlignment="Center" Margin="12,0,4,0"/>
-                        <DatePicker x:Name="TxDatePicker" Grid.Column="3" Width="120"/>
+                        <DatePicker x:Name="TxDatePicker" Grid.Column="3" Width="120"
+                                    Style="{StaticResource DarkDatePickerStyle}"/>
 
                         <TextBlock Grid.Column="4" Text="Time:" Foreground="#B0C4DE"
                                    VerticalAlignment="Center" Margin="8,0,4,0"/>
@@ -457,7 +572,8 @@
 
                         <TextBlock Grid.Column="6" Text="To Date:" Foreground="#B0C4DE"
                                    VerticalAlignment="Center" Margin="8,0,4,0"/>
-                        <DatePicker x:Name="ToDatePicker" Grid.Column="7" Width="120"/>
+                        <DatePicker x:Name="ToDatePicker" Grid.Column="7" Width="120"
+                                    Style="{StaticResource DarkDatePickerStyle}"/>
 
                         <TextBlock Grid.Column="8" Text="User/Mobile:" Foreground="#B0C4DE"
                                    VerticalAlignment="Center" Margin="8,0,4,0"/>
