@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AirStudio.CommercialManager.Core.Models;
+using AirStudio.CommercialManager.Core.Services.Agencies;
 using AirStudio.CommercialManager.Core.Services.Library;
 using AirStudio.CommercialManager.Core.Services.Logging;
 using AirStudio.CommercialManager.Core.Services.Tags;
@@ -15,6 +16,30 @@ using QuestPDF.Infrastructure;
 namespace AirStudio.CommercialManager.Core.Services.Reports
 {
     /// <summary>
+    /// Professional color scheme for PDF generation
+    /// </summary>
+    internal static class PdfColors
+    {
+        public static readonly Color Primary = Color.FromHex("#1E3A5F");
+        public static readonly Color Accent = Color.FromHex("#3182CE");
+        public static readonly Color DayHeader = Color.FromHex("#E8F4FD");
+        public static readonly Color TableHeader = Color.FromHex("#2C5282");
+        public static readonly Color RowAlt = Color.FromHex("#F7FAFC");
+        public static readonly Color SpotBg = Color.FromHex("#EDF2F7");
+        public static readonly Color SpotBorder = Color.FromHex("#3182CE");
+        public static readonly Color SpotText = Color.FromHex("#4A5568");
+        public static readonly Color DaySummaryBg = Color.FromHex("#E2E8F0");
+        public static readonly Color DaySummaryText = Color.FromHex("#718096");
+        public static readonly Color StatusActive = Color.FromHex("#38A169");
+        public static readonly Color StatusPending = Color.FromHex("#D69E2E");
+        public static readonly Color StatusExpired = Color.FromHex("#E53E3E");
+        public static readonly Color CardBlue = Color.FromHex("#3182CE");
+        public static readonly Color CardGreen = Color.FromHex("#38A169");
+        public static readonly Color CardOrange = Color.FromHex("#DD6B20");
+        public static readonly Color CardPurple = Color.FromHex("#805AD5");
+    }
+
+    /// <summary>
     /// Service for generating broadcast sheet PDF reports
     /// </summary>
     public class BroadcastSheetService
@@ -22,6 +47,7 @@ namespace AirStudio.CommercialManager.Core.Services.Reports
         private readonly Channel _channel;
         private readonly CommercialService _commercialService;
         private readonly TagService _tagService;
+        private readonly AgencyService _agencyService;
 
         static BroadcastSheetService()
         {
@@ -34,6 +60,7 @@ namespace AirStudio.CommercialManager.Core.Services.Reports
             _channel = channel ?? throw new ArgumentNullException(nameof(channel));
             _commercialService = new CommercialService(channel);
             _tagService = new TagService(channel);
+            _agencyService = new AgencyService(channel);
         }
 
         /// <summary>
@@ -69,10 +96,13 @@ namespace AirStudio.CommercialManager.Core.Services.Reports
                     .ThenBy(s => s.TxTime)
                     .ToList();
 
-                // Load commercials for spot details
-                var commercials = options.IncludeSpotDetails
-                    ? await _commercialService.LoadCommercialsAsync(cancellationToken)
-                    : new List<Commercial>();
+                // Load agencies for spot details
+                var agencies = options.IncludeAgencyInfo
+                    ? await _agencyService.LoadAgenciesAsync(cancellationToken)
+                    : new List<Agency>();
+
+                // Create agency lookup dictionary
+                var agencyLookup = agencies.ToDictionary(a => a.Code, a => a.AgencyName);
 
                 // Group by date
                 var groupedByDate = schedules.GroupBy(s => s.TxDate.Date);
@@ -95,6 +125,7 @@ namespace AirStudio.CommercialManager.Core.Services.Reports
                             TxTime = schedule.TxTimeDisplay,
                             CapsuleName = schedule.CapsuleName,
                             Duration = schedule.Duration,
+                            TxDate = schedule.TxDate,
                             ValidUntil = schedule.ToDate,
                             UserName = schedule.UserName,
                             MobileNo = schedule.MobileNo
@@ -106,34 +137,53 @@ namespace AirStudio.CommercialManager.Core.Services.Reports
                             try
                             {
                                 var tagFile = _tagService.LoadTagFile(schedule.TagFilePath);
-                                if (tagFile != null)
+                                if (tagFile != null && tagFile.CommercialEntries.Count > 0)
                                 {
+                                    LogService.Info($"Loaded TAG file with {tagFile.CommercialEntries.Count} spots: {schedule.TagFilePath}");
+
                                     foreach (var entry in tagFile.CommercialEntries)
                                     {
-                                        var commercial = commercials.FirstOrDefault(c =>
-                                            string.Equals(c.Spot, entry.SpotName, StringComparison.OrdinalIgnoreCase));
+                                        // Get agency name from lookup
+                                        var agencyName = "--";
+                                        if (entry.AgencyCode > 0 && agencyLookup.TryGetValue(entry.AgencyCode, out var foundAgency))
+                                        {
+                                            agencyName = foundAgency;
+                                        }
 
                                         var spot = new BroadcastSheetSpot
                                         {
                                             SpotName = entry.SpotName,
                                             Duration = entry.DurationFormatted,
-                                            Agency = commercial?.Agency ?? "--",
-                                            AgencyCode = commercial?.Code ?? 0
+                                            Agency = agencyName,
+                                            AgencyCode = entry.AgencyCode
                                         };
 
                                         capsule.Spots.Add(spot);
                                         allSpots.Add(entry.SpotName);
 
-                                        if (!string.IsNullOrEmpty(commercial?.Agency))
+                                        if (!string.IsNullOrEmpty(agencyName) && agencyName != "--")
                                         {
-                                            allAgencies.Add(commercial.Agency);
+                                            allAgencies.Add(agencyName);
                                         }
                                     }
+
+                                    LogService.Info($"Added {capsule.Spots.Count} spots to capsule '{capsule.CapsuleName}'");
+                                }
+                                else
+                                {
+                                    LogService.Warning($"TAG file is null or empty for schedule: {schedule.TagFilePath}");
                                 }
                             }
                             catch (Exception ex)
                             {
-                                LogService.Warning($"Failed to parse TAG file for broadcast sheet: {ex.Message}");
+                                LogService.Error($"Failed to parse TAG file for broadcast sheet: {schedule.TagFilePath}", ex);
+                            }
+                        }
+                        else
+                        {
+                            if (options.IncludeSpotDetails)
+                            {
+                                LogService.Warning($"Schedule has no TAG file path: {schedule.CapsuleName} at {schedule.TxTime}");
                             }
                         }
 
@@ -149,16 +199,53 @@ namespace AirStudio.CommercialManager.Core.Services.Reports
                     data.Days.Add(day);
                 }
 
+                // Calculate agency breakdown
+                var agencyBreakdown = new List<AgencyStats>();
+                var agencySpotData = new Dictionary<string, (int count, double duration)>();
+
+                foreach (var day in data.Days)
+                {
+                    foreach (var capsule in day.Capsules)
+                    {
+                        foreach (var spot in capsule.Spots)
+                        {
+                            var agencyName = !string.IsNullOrEmpty(spot.Agency) && spot.Agency != "--"
+                                ? spot.Agency
+                                : "Other";
+
+                            if (!agencySpotData.ContainsKey(agencyName))
+                            {
+                                agencySpotData[agencyName] = (0, 0);
+                            }
+
+                            var current = agencySpotData[agencyName];
+                            var spotDuration = TimeSpan.TryParse(spot.Duration, out var d) ? d.TotalSeconds : 0;
+                            agencySpotData[agencyName] = (current.count + 1, current.duration + spotDuration);
+                        }
+                    }
+                }
+
+                foreach (var kvp in agencySpotData.OrderByDescending(x => x.Value.count))
+                {
+                    agencyBreakdown.Add(new AgencyStats
+                    {
+                        AgencyName = kvp.Key,
+                        SpotCount = kvp.Value.count,
+                        TotalDuration = TimeSpan.FromSeconds(kvp.Value.duration)
+                    });
+                }
+
                 // Update summary
                 data.Summary = new BroadcastSheetSummary
                 {
                     TotalSchedules = schedules.Count,
                     TotalDuration = totalDuration,
                     UniqueCommercials = allSpots.Count,
-                    UniqueAgencies = allAgencies.Count
+                    UniqueAgencies = allAgencies.Count,
+                    AgencyBreakdown = agencyBreakdown
                 };
 
-                LogService.Info($"Generated broadcast sheet data: {schedules.Count} schedules, {data.Days.Count} days");
+                LogService.Info($"Generated broadcast sheet data: {schedules.Count} schedules, {data.Days.Count} days, {agencyBreakdown.Count} agencies");
             }
             catch (Exception ex)
             {
@@ -231,30 +318,41 @@ namespace AirStudio.CommercialManager.Core.Services.Reports
         {
             container.Column(column =>
             {
-                // Title
-                column.Item().AlignCenter().Text("COMMERCIAL BROADCAST SHEET")
-                    .FontSize(18).Bold().FontColor(Colors.Blue.Darken2);
+                // Title with accent bar
+                column.Item().Row(row =>
+                {
+                    row.ConstantItem(4).Background(PdfColors.Accent);
+                    row.RelativeItem().Background(PdfColors.DayHeader).Padding(12).Column(titleCol =>
+                    {
+                        titleCol.Item().AlignCenter().Text("COMMERCIAL BROADCAST SHEET")
+                            .FontSize(20).Bold().FontColor(PdfColors.Primary);
+                    });
+                });
 
-                column.Item().Height(10);
+                column.Item().Height(12);
 
                 // Info row
                 column.Item().Row(row =>
                 {
                     row.RelativeItem().Column(col =>
                     {
-                        col.Item().Text($"Channel: {data.ChannelName}").Bold();
-                        col.Item().Text($"Period: {data.PeriodDisplay}");
+                        col.Item().Text(text =>
+                        {
+                            text.Span("Channel: ").FontSize(11);
+                            text.Span(data.ChannelName).Bold().FontSize(11).FontColor(PdfColors.Accent);
+                        });
+                        col.Item().Text($"Period: {data.PeriodDisplay}").FontSize(10);
                     });
 
                     row.RelativeItem().Column(col =>
                     {
-                        col.Item().AlignRight().Text($"Generated: {data.GeneratedAt:dd-MMM-yyyy HH:mm}");
-                        col.Item().AlignRight().Text($"By: {data.GeneratedBy}");
+                        col.Item().AlignRight().Text($"Generated: {data.GeneratedAt:dd-MMM-yyyy HH:mm}").FontSize(10);
+                        col.Item().AlignRight().Text($"By: {data.GeneratedBy}").FontSize(10);
                     });
                 });
 
                 column.Item().Height(10);
-                column.Item().BorderBottom(1).BorderColor(Colors.Grey.Medium);
+                column.Item().BorderBottom(2).BorderColor(PdfColors.Accent);
             });
         }
 
@@ -265,11 +363,19 @@ namespace AirStudio.CommercialManager.Core.Services.Reports
                 foreach (var day in data.Days)
                 {
                     column.Item().Element(c => ComposeDaySection(c, day, data.Options));
-                    column.Item().Height(15);
+                    column.Item().Element(c => ComposeDaySummary(c, day));
+                    column.Item().Height(20);
                 }
 
-                // Summary section
+                // Summary section with dashboard cards
                 column.Item().Element(c => ComposeSummary(c, data.Summary));
+
+                // Agency breakdown table
+                if (data.Summary.AgencyBreakdown.Count > 0)
+                {
+                    column.Item().Height(15);
+                    column.Item().Element(c => ComposeAgencyBreakdown(c, data.Summary.AgencyBreakdown));
+                }
             });
         }
 
@@ -277,94 +383,247 @@ namespace AirStudio.CommercialManager.Core.Services.Reports
         {
             container.Column(column =>
             {
-                // Day header
-                column.Item().Background(Colors.Blue.Lighten4).Padding(8)
-                    .Text(day.DayDisplay).Bold().FontSize(11);
+                // Day header with accent bar
+                column.Item().Row(row =>
+                {
+                    row.ConstantItem(4).Background(PdfColors.Accent);
+                    row.RelativeItem().Background(PdfColors.DayHeader).Padding(10)
+                        .Text(day.DayDisplay).Bold().FontSize(12).FontColor(PdfColors.Primary);
+                });
 
                 // Capsules table
                 column.Item().Table(table =>
                 {
+                    // Define columns including STATUS
                     table.ColumnsDefinition(columns =>
                     {
-                        columns.ConstantColumn(60);  // Time
+                        columns.ConstantColumn(55);  // Time
                         columns.RelativeColumn(2);   // Capsule Name
                         columns.ConstantColumn(60);  // Duration
-                        columns.ConstantColumn(80);  // Valid Until
+                        columns.ConstantColumn(70);  // Valid Until
+                        columns.ConstantColumn(55);  // Status
                         if (options.IncludeUserInfo)
                         {
                             columns.RelativeColumn(1);   // User
                         }
                     });
 
-                    // Header row
+                    // Header row with professional styling
                     table.Header(header =>
                     {
-                        header.Cell().Background(Colors.Grey.Lighten3).Padding(4)
-                            .Text("TIME").Bold().FontSize(9);
-                        header.Cell().Background(Colors.Grey.Lighten3).Padding(4)
-                            .Text("CAPSULE").Bold().FontSize(9);
-                        header.Cell().Background(Colors.Grey.Lighten3).Padding(4)
-                            .Text("DURATION").Bold().FontSize(9);
-                        header.Cell().Background(Colors.Grey.Lighten3).Padding(4)
-                            .Text("VALID UNTIL").Bold().FontSize(9);
+                        header.Cell().Background(PdfColors.TableHeader).Padding(6)
+                            .Text("TIME").Bold().FontSize(9).FontColor(Colors.White);
+                        header.Cell().Background(PdfColors.TableHeader).Padding(6)
+                            .Text("CAPSULE").Bold().FontSize(9).FontColor(Colors.White);
+                        header.Cell().Background(PdfColors.TableHeader).Padding(6)
+                            .Text("DURATION").Bold().FontSize(9).FontColor(Colors.White);
+                        header.Cell().Background(PdfColors.TableHeader).Padding(6)
+                            .Text("VALID").Bold().FontSize(9).FontColor(Colors.White);
+                        header.Cell().Background(PdfColors.TableHeader).Padding(6)
+                            .Text("STATUS").Bold().FontSize(9).FontColor(Colors.White);
                         if (options.IncludeUserInfo)
                         {
-                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4)
-                                .Text("USER").Bold().FontSize(9);
+                            header.Cell().Background(PdfColors.TableHeader).Padding(6)
+                                .Text("USER").Bold().FontSize(9).FontColor(Colors.White);
                         }
                     });
 
-                    // Data rows
+                    // Data rows with alternation
+                    var rowIndex = 0;
+                    var colCount = options.IncludeUserInfo ? 6 : 5;
+
                     foreach (var capsule in day.Capsules)
                     {
-                        table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(4)
-                            .Text(capsule.TxTime);
-                        table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(4)
-                            .Text(capsule.CapsuleName);
-                        table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(4)
-                            .Text(capsule.Duration);
-                        table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(4)
-                            .Text(capsule.ValidUntil.ToString("dd-MMM-yy"));
+                        var isEvenRow = rowIndex % 2 == 0;
+                        var rowBg = isEvenRow ? Colors.White : PdfColors.RowAlt;
+
+                        // Get status color
+                        var statusColor = capsule.Status switch
+                        {
+                            "Active" => PdfColors.StatusActive,
+                            "Pending" => PdfColors.StatusPending,
+                            "Expired" => PdfColors.StatusExpired,
+                            _ => Colors.Grey.Medium
+                        };
+
+                        // Time
+                        table.Cell().Background(rowBg).BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
+                            .Padding(6).AlignMiddle().Text(capsule.TxTime).FontSize(10);
+
+                        // Capsule Name
+                        table.Cell().Background(rowBg).BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
+                            .Padding(6).AlignMiddle().Text(capsule.CapsuleName).FontSize(10);
+
+                        // Duration
+                        table.Cell().Background(rowBg).BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
+                            .Padding(6).AlignMiddle().Text(capsule.Duration).FontSize(10);
+
+                        // Valid Until
+                        table.Cell().Background(rowBg).BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
+                            .Padding(6).AlignMiddle().Text(capsule.ValidUntil.ToString("dd-MMM")).FontSize(10);
+
+                        // Status badge
+                        table.Cell().Background(rowBg).BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
+                            .Padding(4).AlignMiddle().AlignCenter()
+                            .Element(cell =>
+                            {
+                                cell.Background(statusColor).Padding(3).AlignCenter()
+                                    .Text(capsule.Status).FontSize(8).Bold().FontColor(Colors.White);
+                            });
+
+                        // User
                         if (options.IncludeUserInfo)
                         {
-                            table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(4)
-                                .Text(capsule.UserName ?? "--");
+                            table.Cell().Background(rowBg).BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
+                                .Padding(6).AlignMiddle().Text(capsule.UserName ?? "--").FontSize(9);
                         }
 
-                        // Spot details
+                        // Spot details with accent box
                         if (options.IncludeSpotDetails && capsule.Spots.Count > 0)
                         {
-                            var colSpan = options.IncludeUserInfo ? 5 : 4;
-                            table.Cell().ColumnSpan((uint)colSpan).Padding(4).PaddingLeft(20)
-                                .Column(spotCol =>
-                                {
-                                    foreach (var spot in capsule.Spots)
-                                    {
-                                        var agencyText = options.IncludeAgencyInfo && !string.IsNullOrEmpty(spot.Agency)
-                                            ? $" ({spot.Agency})"
-                                            : "";
-                                        spotCol.Item().Text($"- {spot.SpotName} [{spot.Duration}]{agencyText}")
-                                            .FontSize(9).FontColor(Colors.Grey.Darken1);
-                                    }
-                                });
+                            table.Cell().ColumnSpan((uint)colCount).PaddingVertical(4).PaddingLeft(20).PaddingRight(10)
+                                .Element(c => ComposeSpotDetails(c, capsule.Spots, options));
                         }
+
+                        rowIndex++;
                     }
                 });
             });
         }
 
+        private void ComposeSpotDetails(IContainer container, List<BroadcastSheetSpot> spots, BroadcastSheetOptions options)
+        {
+            container.Row(row =>
+            {
+                // Left accent bar
+                row.ConstantItem(3).Background(PdfColors.SpotBorder);
+
+                // Spot content box
+                row.RelativeItem().Background(PdfColors.SpotBg).Padding(8).Column(col =>
+                {
+                    foreach (var spot in spots)
+                    {
+                        var agencyText = options.IncludeAgencyInfo && !string.IsNullOrEmpty(spot.Agency) && spot.Agency != "--"
+                            ? $" ({spot.Agency})"
+                            : "";
+
+                        col.Item().Text(text =>
+                        {
+                            text.Span("\u2022 ").FontSize(9).FontColor(PdfColors.Accent);
+                            text.Span($"{spot.SpotName}").FontSize(9).FontColor(PdfColors.SpotText);
+                            text.Span($" [{spot.Duration}]").FontSize(9).FontColor(Colors.Grey.Medium);
+                            text.Span(agencyText).FontSize(9).FontColor(PdfColors.Accent);
+                        });
+                    }
+                });
+            });
+        }
+
+        private void ComposeDaySummary(IContainer container, BroadcastSheetDay day)
+        {
+            container.Background(PdfColors.DaySummaryBg).Padding(8).AlignCenter()
+                .Text(text =>
+                {
+                    text.Span("Day Total: ").FontSize(9).FontColor(PdfColors.DaySummaryText);
+                    text.Span($"{day.TotalCapsules} capsule{(day.TotalCapsules != 1 ? "s" : "")}").FontSize(9).Bold().FontColor(PdfColors.DaySummaryText);
+                    text.Span(" | ").FontSize(9).FontColor(PdfColors.DaySummaryText);
+                    text.Span(day.TotalDurationDisplay).FontSize(9).Bold().FontColor(PdfColors.DaySummaryText);
+                });
+        }
+
         private void ComposeSummary(IContainer container, BroadcastSheetSummary summary)
         {
-            container.Background(Colors.Grey.Lighten4).Padding(10).Column(column =>
+            container.Column(column =>
             {
-                column.Item().Text("SUMMARY").Bold().FontSize(11);
-                column.Item().Height(5);
+                // Section title
+                column.Item().PaddingBottom(10).Text("BROADCAST SUMMARY")
+                    .Bold().FontSize(14).FontColor(PdfColors.Primary);
+
+                // Dashboard cards row
                 column.Item().Row(row =>
                 {
-                    row.RelativeItem().Text($"Total Schedules: {summary.TotalSchedules}");
-                    row.RelativeItem().Text($"Total Duration: {summary.TotalDurationDisplay}");
-                    row.RelativeItem().Text($"Unique Spots: {summary.UniqueCommercials}");
-                    row.RelativeItem().Text($"Agencies: {summary.UniqueAgencies}");
+                    // Schedules card
+                    row.RelativeItem().Padding(4).Element(c => ComposeDashboardCard(c,
+                        summary.TotalSchedules.ToString(),
+                        "SCHEDULES",
+                        PdfColors.CardBlue));
+
+                    // Duration card
+                    row.RelativeItem().Padding(4).Element(c => ComposeDashboardCard(c,
+                        summary.TotalDurationDisplay,
+                        "DURATION",
+                        PdfColors.CardGreen));
+
+                    // Spots card
+                    row.RelativeItem().Padding(4).Element(c => ComposeDashboardCard(c,
+                        summary.UniqueCommercials.ToString(),
+                        "UNIQUE SPOTS",
+                        PdfColors.CardOrange));
+
+                    // Agencies card
+                    row.RelativeItem().Padding(4).Element(c => ComposeDashboardCard(c,
+                        summary.UniqueAgencies.ToString(),
+                        "AGENCIES",
+                        PdfColors.CardPurple));
+                });
+            });
+        }
+
+        private void ComposeDashboardCard(IContainer container, string value, string label, Color bgColor)
+        {
+            container.Background(bgColor).Padding(12).Column(col =>
+            {
+                col.Item().AlignCenter().Text(value)
+                    .FontSize(22).Bold().FontColor(Colors.White);
+                col.Item().AlignCenter().Text(label)
+                    .FontSize(9).FontColor(Colors.White);
+            });
+        }
+
+        private void ComposeAgencyBreakdown(IContainer container, List<AgencyStats> agencyStats)
+        {
+            container.Column(column =>
+            {
+                // Section title
+                column.Item().PaddingBottom(8).Text("Agency Distribution")
+                    .Bold().FontSize(12).FontColor(PdfColors.Primary);
+
+                // Agency table
+                column.Item().Table(table =>
+                {
+                    table.ColumnsDefinition(columns =>
+                    {
+                        columns.RelativeColumn(3);   // Agency Name
+                        columns.RelativeColumn(1);   // Spots
+                        columns.RelativeColumn(1);   // Duration
+                    });
+
+                    // Header
+                    table.Header(header =>
+                    {
+                        header.Cell().Background(Colors.Grey.Lighten3).Padding(6)
+                            .Text("AGENCY").Bold().FontSize(9);
+                        header.Cell().Background(Colors.Grey.Lighten3).Padding(6).AlignRight()
+                            .Text("SPOTS").Bold().FontSize(9);
+                        header.Cell().Background(Colors.Grey.Lighten3).Padding(6).AlignRight()
+                            .Text("DURATION").Bold().FontSize(9);
+                    });
+
+                    // Data rows with alternation
+                    var rowIndex = 0;
+                    foreach (var agency in agencyStats)
+                    {
+                        var rowBg = rowIndex % 2 == 0 ? Colors.White : PdfColors.RowAlt;
+
+                        table.Cell().Background(rowBg).BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
+                            .Padding(5).Text(agency.AgencyName).FontSize(10);
+                        table.Cell().Background(rowBg).BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
+                            .Padding(5).AlignRight().Text(agency.SpotCount.ToString()).FontSize(10);
+                        table.Cell().Background(rowBg).BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
+                            .Padding(5).AlignRight().Text(agency.DurationDisplay).FontSize(10);
+
+                        rowIndex++;
+                    }
                 });
             });
         }

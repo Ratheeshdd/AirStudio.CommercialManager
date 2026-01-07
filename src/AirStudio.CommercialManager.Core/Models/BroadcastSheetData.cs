@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace AirStudio.CommercialManager.Core.Models
 {
@@ -81,6 +82,22 @@ namespace AirStudio.CommercialManager.Core.Models
         /// Scheduled capsules for this day
         /// </summary>
         public List<BroadcastSheetCapsule> Capsules { get; set; } = new List<BroadcastSheetCapsule>();
+
+        /// <summary>
+        /// Total number of capsules for this day
+        /// </summary>
+        public int TotalCapsules => Capsules.Count;
+
+        /// <summary>
+        /// Total duration of all capsules for this day
+        /// </summary>
+        public TimeSpan TotalDuration => TimeSpan.FromSeconds(
+            Capsules.Sum(c => TimeSpan.TryParse(c.Duration, out var d) ? d.TotalSeconds : 0));
+
+        /// <summary>
+        /// Total duration formatted for display
+        /// </summary>
+        public string TotalDurationDisplay => TotalDuration.ToString(@"hh\:mm\:ss");
     }
 
     /// <summary>
@@ -102,6 +119,11 @@ namespace AirStudio.CommercialManager.Core.Models
         /// Total duration
         /// </summary>
         public string Duration { get; set; }
+
+        /// <summary>
+        /// Transmission date (TxDate)
+        /// </summary>
+        public DateTime TxDate { get; set; }
 
         /// <summary>
         /// Validity/To date
@@ -127,6 +149,22 @@ namespace AirStudio.CommercialManager.Core.Models
         /// Spots count display
         /// </summary>
         public string SpotsDisplay => Spots.Count > 0 ? $"{Spots.Count} spot{(Spots.Count != 1 ? "s" : "")}" : "--";
+
+        /// <summary>
+        /// Schedule status (Active, Pending, Expired)
+        /// </summary>
+        public string Status
+        {
+            get
+            {
+                var today = DateTime.Today;
+                if (ValidUntil < today)
+                    return "Expired";
+                if (TxDate > today)
+                    return "Pending";
+                return "Active";
+            }
+        }
     }
 
     /// <summary>
@@ -205,5 +243,36 @@ namespace AirStudio.CommercialManager.Core.Models
         /// Total duration formatted
         /// </summary>
         public string TotalDurationDisplay => TotalDuration.ToString(@"hh\:mm\:ss");
+
+        /// <summary>
+        /// Agency breakdown statistics
+        /// </summary>
+        public List<AgencyStats> AgencyBreakdown { get; set; } = new List<AgencyStats>();
+    }
+
+    /// <summary>
+    /// Agency statistics for the broadcast sheet summary
+    /// </summary>
+    public class AgencyStats
+    {
+        /// <summary>
+        /// Agency name
+        /// </summary>
+        public string AgencyName { get; set; }
+
+        /// <summary>
+        /// Number of spots for this agency
+        /// </summary>
+        public int SpotCount { get; set; }
+
+        /// <summary>
+        /// Total duration for this agency's spots
+        /// </summary>
+        public TimeSpan TotalDuration { get; set; }
+
+        /// <summary>
+        /// Total duration formatted for display
+        /// </summary>
+        public string DurationDisplay => TotalDuration.ToString(@"hh\:mm\:ss");
     }
 }

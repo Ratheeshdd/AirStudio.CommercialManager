@@ -470,6 +470,7 @@
 - `Core/Services/Channels/ChannelService.cs` - Channel loading
 - `Core/Services/Library/CommercialService.cs` - Commercial management
 - `Core/Services/Logging/LogService.cs` - Logging
+- `Core/Services/Reports/BroadcastSheetService.cs` - PDF broadcast sheet generation
 
 ### Views
 - `Windows/MainWindow.xaml` - Main application window
@@ -511,6 +512,16 @@
 - [x] **Fixed multi-segment cursor reset bug**: Cursor now tracks correctly across all segments in WaveformViewer
 - [x] **Toolbar button hover animations**: Slide-out Popup labels with scale effect on all 5 toolbar buttons
 - [x] **BroadcastSheetWindow UI fixes**: Dark theme DatePickers, GroupBox headers, CheckBoxes with professional styling
+- [x] **Broadcast Sheet PDF Professional Redesign**:
+  - Alternating row backgrounds (white/#F7FAFC) for easy row scanning
+  - Spot details accent box with left blue border (#3182CE) + light background (#EDF2F7)
+  - Status badges: Green (Active), Yellow (Pending), Red (Expired) color-coded indicators
+  - Per-day summary bars showing capsule count and total duration
+  - Dashboard summary cards: 4 color-coded metric boxes (Blue/Green/Orange/Purple)
+  - Agency breakdown table showing spots and duration per agency
+  - Professional color scheme with PdfColors constants class
+  - Enhanced header with accent bar and prominent channel name
+  - Dark blue table headers (#2C5282) with white text
 
 ---
 
@@ -524,4 +535,4 @@
 
 ---
 
-*Last Updated: 2026-01-07 (Vibrant Channel ComboBox, panel height optimization, and UI enhancements completed)*
+*Last Updated: 2026-01-07 (Broadcast Sheet PDF professional redesign with dashboard cards, status badges, and agency breakdown)*
